@@ -240,7 +240,7 @@ namespace Cobalt
 
 			VkDescriptorPoolCreateInfo createInfo = {
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-				.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+				.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
 				.maxSets = 1000 * (sizeof(poolSizes) / sizeof(poolSizes[0])),
 				.poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]),
 				.pPoolSizes = poolSizes

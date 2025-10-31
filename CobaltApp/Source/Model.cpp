@@ -4,6 +4,7 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include <assimp/pbrmaterial.h>
 
 namespace Cobalt
 {
@@ -93,12 +94,17 @@ namespace Cobalt
 		{
 			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
+			materialData.AlbedoMapHandle = LoadMaterialTexture(material, aiTextureType_DIFFUSE);
+			//materialData.MetallicMapHandle = LoadMaterialTexture(material, );
+
+			/*
 			materialData.DiffuseMapHandle  = LoadMaterialTexture(material, aiTextureType_AMBIENT);
 			materialData.SpecularMapHandle = LoadMaterialTexture(material, aiTextureType_SPECULAR);
 
 			aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &materialData.Shininess);
 			if (materialData.Shininess == 0.0f)
 				materialData.Shininess = 1.0f;
+			*/
 		}
 
 		return std::make_unique<Mesh>(vertices, indices, materialData);

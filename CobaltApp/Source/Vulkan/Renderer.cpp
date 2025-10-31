@@ -327,7 +327,7 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		if (sData->Framebuffers.size() > 0)
+		if (!sData->Framebuffers.empty())
 		{
 			for (VkFramebuffer framebuffer : sData->Framebuffers)
 				vkDestroyFramebuffer(GraphicsContext::Get().GetDevice(), framebuffer, nullptr);

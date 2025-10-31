@@ -50,7 +50,7 @@ struct VSOutput
 ConstantBuffer<Scene> gScene;
 
 [shader("vertex")]
-VSOutput VSMain(uniform StructuredBuffer<Object> objects, uint instanceID : SV_InstanceID, uint vertexID : SV_VertexID)
+VSOutput VSMain(uniform StructuredBuffer<Object> objects, uint instanceID: SV_InstanceID, uint vertexID: SV_VertexID)
 {
 	Object object = objects[instanceID];
 	MeshVertex vertex = object.Vertices[vertexID];
@@ -80,7 +80,10 @@ float4 FSMain(VSOutput input, uniform StructuredBuffer<Material> materials, unif
 	float3 viewDir  = normalize(gScene.Camera.Translation - input.FragPosition);
 
 	radiance += gScene.DirectionalLight.CalculateRadiance(unpackedMaterial, normal, viewDir);
+
+	float3 ambient = CalculateAmbient(unpackedMaterial);
+	float3 color = GammaCorrection(radiance + ambient);
 	
-	return float4(radiance, 1.0);
+	return float4(color, 1.0);
 }
 

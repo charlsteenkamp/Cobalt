@@ -34,19 +34,19 @@ namespace Cobalt
 
 	struct DrawCall
 	{
-		VulkanBuffer* IndexBuffer;
-		uint32_t IndexCount;
-		Material* Material;
-		uint32_t FirstInstance;
+		VulkanBuffer* IndexBuffer = nullptr;
+		uint32_t IndexCount = 0;
+		Material* Material = nullptr;
+		uint32_t FirstInstance = 0;
 	};
 
 	struct DrawBatch
 	{
-		VulkanBuffer* IndexBuffer;
-		uint32_t IndexCount;
-		Material* Material;
-		uint32_t FirstInstance;
-		uint32_t InstanceCount;
+		VulkanBuffer* IndexBuffer = nullptr;
+		uint32_t IndexCount = 0;
+		Material* Material = nullptr;
+		uint32_t FirstInstance = 0;
+		uint32_t InstanceCount = 0;
 	};
 
 	class Renderer

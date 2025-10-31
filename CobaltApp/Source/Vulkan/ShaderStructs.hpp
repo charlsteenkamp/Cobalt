@@ -50,18 +50,17 @@ namespace Cobalt
 
 	struct MaterialData
 	{
-		TextureHandle DiffuseMapHandle;
-		TextureHandle SpecularMapHandle;
-		float Shininess;
+		TextureHandle AlbedoMapHandle;
+		TextureHandle MetallicMapHandle;
+		TextureHandle RoughnessMapHandle;
 	};
-
 
 	struct ObjectData
 	{
-		glm::mat4 Transform;
-		glm::mat4 NormalMatrix;
-		VkDeviceAddress VertexBufferRef;
-		MaterialHandle MaterialHandle;
+		glm::mat4 Transform = glm::mat4(1.0f);
+		glm::mat4 NormalMatrix = glm::mat4(1.0f);
+		VkDeviceAddress VertexBufferRef = 0;
+		MaterialHandle MaterialHandle = -1;
 	};
 
 	static_assert(sizeof(ObjectData) == 144);
