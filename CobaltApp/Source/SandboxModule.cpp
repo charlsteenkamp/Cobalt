@@ -78,6 +78,8 @@ namespace Cobalt
 	void SandboxModule::OnUpdate(float deltaTime)
 	{
 		CO_PROFILE_FN();
+
+		const Application* application = Application::Get();
 		
 		static float lastTime = glfwGetTime();
 		float currentTime = glfwGetTime();
@@ -86,9 +88,14 @@ namespace Cobalt
 		{
 			lastTime = currentTime;
 			mLastDeltaTime = deltaTime;
+
+			if (!application->GetInfo().EnableImGui)
+			{
+				std::cout << "Frame time: " << mLastDeltaTime * 1000.0f << "ms\n";
+			}
 		}
 
-		GLFWwindow* window = Application::Get()->GetWindow().GetWindow();
+		GLFWwindow* window = application->GetWindow().GetWindow();
 
 		static bool captureMouse = true;
 

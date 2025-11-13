@@ -21,6 +21,8 @@ namespace Cobalt
 		uint32_t MaterialHandle;
 	};
 
+	static_assert(sizeof(MeshVertex) == 36);
+
 	struct MeshSurface
 	{
 		uint32_t FirstIndex = 0;

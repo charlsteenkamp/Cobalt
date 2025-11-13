@@ -284,11 +284,14 @@ namespace Cobalt
 				{
 					VkCommandPoolCreateInfo commandPoolCreateInfo = {
 						.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-						.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+						//.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+						.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 						.queueFamilyIndex = (uint32_t)mQueueFamily,
 					};
 
 					VK_CALL(vkCreateCommandPool(mDevice, &commandPoolCreateInfo, nullptr, &fd.CommandPool));
+
+					fd.CommandBuffer = AllocateCommandBuffer(fd.CommandPool);
 				}
 
 				// Create synchronisation objects 
@@ -365,7 +368,7 @@ namespace Cobalt
 
 		VkCommandBufferAllocateInfo allocInfo = {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			.commandPool = commandPool == VK_NULL_HANDLE ? mFrames[mFrameIndex].CommandPool : commandPool,
+			.commandPool = commandPool,
 			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 			.commandBufferCount = 1,
 		};
@@ -387,7 +390,7 @@ namespace Cobalt
 		VkFence fence;
 		VK_CALL(vkCreateFence(mDevice, &fenceCreateInfo, nullptr, &fence));
 
-		VkCommandBuffer commandBuffer = AllocateCommandBuffer();
+		VkCommandBuffer commandBuffer = AllocateCommandBuffer(mFrames[mFrameIndex].CommandPool);
 
 		VkCommandBufferBeginInfo beginInfo = {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -408,6 +411,7 @@ namespace Cobalt
 		VK_CALL(vkWaitForFences(mDevice, 1, &fence, VK_TRUE, UINT64_MAX));
 
 		vkDestroyFence(mDevice, fence, nullptr);
+		vkFreeCommandBuffers(mDevice, mFrames[mFrameIndex].CommandPool, 1, &commandBuffer);
 	}
 
 	void GraphicsContext::RenderFrame(const std::vector<Module*> modules)
@@ -449,11 +453,9 @@ namespace Cobalt
 		// Start command buffer
 
 		{
-			CO_PROFILE_CATEGORY("Command Buffer Reallocation & Restart", Optick::Category::Wait);
+			CO_PROFILE_CATEGORY("vkBeginCommandBuffer", Optick::Category::Wait);
 
-			VK_CALL(vkResetCommandPool(mDevice, fd.CommandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT));
-
-			mActiveCommandBuffer = AllocateCommandBuffer();
+			mActiveCommandBuffer = fd.CommandBuffer;
 
 			CO_PROFILE_COMMAND_BUFFER(mActiveCommandBuffer);
 

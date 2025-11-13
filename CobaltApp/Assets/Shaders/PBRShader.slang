@@ -93,6 +93,9 @@ float4 FSMain(VSOutput input, uniform StructuredBuffer<Material> materials, unif
 	float3 color = GammaCorrection(luminance + ambient);
 	
 	return float4(color, 1.0);
+	//return float4(unpackedMaterial.BaseColor.xyz, 1.0);
+	//return float4(normal, 1.0);
+	//return float4(1.0);
 	//return float4(textures[0].Sample(input.UV).xyz, 1.0);
 	//return float4(float(input.MaterialHandle), 1.0, 0.0, 1.0);
 	//return float4(input.UV, 1.0, 1.0);

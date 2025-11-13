@@ -49,7 +49,7 @@ namespace Cobalt
 		uint32_t GetFrameIndex() const { return mFrameIndex; }
 
 	public:
-		VkCommandBuffer AllocateCommandBuffer(VkCommandPool commandPool = VK_NULL_HANDLE);
+		VkCommandBuffer AllocateCommandBuffer(VkCommandPool commandPool);
 		void SubmitSingleTimeCommands(VkQueue queue, std::function<void(VkCommandBuffer)> fn);
 
 	public:

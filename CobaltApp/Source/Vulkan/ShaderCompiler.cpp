@@ -29,7 +29,8 @@ namespace Cobalt
 		slang::TargetDesc targetDescs[] = {
 			{
 				.format = SLANG_SPIRV,
-				.profile = sGlobalSession->findProfile("spirv_1_4"),
+//				.profile = sGlobalSession->findProfile("spirv_1_4"),
+.profile = sGlobalSession->findProfile("GLSL_150"),
 				.flags = 0 /* | SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY*/,
 				.compilerOptionEntries = compilerOptions,
 				.compilerOptionEntryCount = 2,
