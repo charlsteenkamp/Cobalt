@@ -1,7 +1,7 @@
 #pragma once
 #include <optick.h>
 
-//#define CO_ENABLE_PROFILING
+#define CO_ENABLE_PROFILING
 
 #ifdef CO_ENABLE_PROFILING
 	#define CO_PROFILE_FRAME(name) OPTICK_FRAME(name)

@@ -5,28 +5,27 @@
 namespace Cobalt
 {
 
+	struct MaterialInfo
+	{
+		const MaterialData& MaterialData;
+		const Pipeline&     Pipeline;
+	};
+
 	class Material
 	{
 	public:
-		Material(MaterialHandle handle, MaterialData* data);
+		Material(const MaterialInfo& materialInfo);
 		~Material();
 
 	public:
-		VulkanDescriptorSet* GetGlobalDescriptorSet(uint32_t frameIndex) const { return mGlobalDescriptorSets[frameIndex]; }
+		const Pipeline& GetPipeline() const { return mPipeline; }
 
-	public:
-		MaterialHandle GetMaterialHandle() const { return mMaterialHandle; }
-		const Pipeline& GetPipeline() const { return *mPipeline; }
-
-		      MaterialData& GetMaterialData()       { return *mMaterialData; }
-		const MaterialData& GetMaterialData() const { return *mMaterialData; }
+		      MaterialData& GetMaterialData()       { return mMaterialData; }
+		const MaterialData& GetMaterialData() const { return mMaterialData; }
 
 	private:
-		MaterialHandle mMaterialHandle;
-		std::unique_ptr<Pipeline> mPipeline;
-		MaterialData* mMaterialData;
-
-		std::vector<VulkanDescriptorSet*> mGlobalDescriptorSets;
+		MaterialData mMaterialData;
+		const Pipeline& mPipeline;
 	};
 
 }

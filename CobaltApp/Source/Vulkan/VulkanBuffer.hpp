@@ -35,14 +35,10 @@ namespace Cobalt
 
 	private:
 		VkBuffer mBuffer = VK_NULL_HANDLE;
-		//VkDeviceMemory mMemory = VK_NULL_HANDLE;
-		//VkDeviceSize mSize = 0;
 		VkBufferUsageFlags mUsage = VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
 
 		VmaAllocation mAllocation;
 		VmaAllocationInfo mAllocationInfo;
-
-		//VkMemoryRequirements mMemoryRequirements;
 	};
 
 }

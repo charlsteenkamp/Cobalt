@@ -13,11 +13,15 @@ namespace Cobalt
 		~VulkanDescriptorSet();
 
 	public:
-		void SetBufferBinding(const VulkanBuffer* buffer, uint32_t binding, uint32_t arrayIndex = 0);
-		void SetImageBinding(const Texture* image, uint32_t binding, uint32_t arrayIndex = 0);
+		void SetBufferBinding(const VulkanBuffer& buffer, uint32_t binding, uint32_t arrayIndex = 0);
+		void SetImageBinding(const Texture& image, uint32_t binding, uint32_t arrayIndex = 0);
 		void Update();
 
 		void Bind(VkCommandBuffer commandBuffer);
+
+	public:
+		uint32_t GetDescriptorBufferBindingCount() const { return mDescriptorBufferInfos.size(); }
+		uint32_t GetDescriptorImageCount()         const { return mDescriptorImageInfos.size();  }
 
 	public:
 		VkDescriptorSet GetDescriptorSet() const { return mDescriptorSet; }

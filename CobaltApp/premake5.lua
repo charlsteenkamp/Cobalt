@@ -6,7 +6,7 @@ project "CobaltApp"
         "ImGui",
         "GLFW",
         "stb_image",
-		"assimp",
+		"fastgltf",
 		"%{Library.slang}",
 		"%{Library.Vulkan}",
 		"%{Library.Optick}"
@@ -26,7 +26,7 @@ project "CobaltApp"
 		"%{IncludeDir.GLM}",
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.ImGui}",
-		"%{IncludeDir.assimp}",
+		"%{IncludeDir.fastgltf}",
 		"%{IncludeDir.Optick}"
 	}
 

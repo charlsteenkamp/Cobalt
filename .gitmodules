@@ -7,12 +7,12 @@
 [submodule "Dependencies/ImGui"]
 	path = Dependencies/ImGui
 	url = https://github.com/ImPro2/ImGui
-[submodule "Dependencies/assimp"]
-	path = Dependencies/assimp
-	url = https://github.com/AminAliari/assimp/
 [submodule "Dependencies/Optick"]
 	path = Dependencies/Optick
 	url = https://github.com/bombomby/optick
 [submodule "CobaltApp/Assets/Sponza"]
 	path = CobaltApp/Assets/Sponza
 	url = https://github.com/jimmiebergmann/Sponza
+[submodule "Dependencies/fastgltf"]
+	path = Dependencies/fastgltf
+	url = https://github.com/ImPro2/fastgltf

@@ -29,7 +29,7 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		const std::vector<ShaderStage> shaderStages = mInfo.Shader->GetShaderStages();
+		const std::vector<ShaderStage> shaderStages = mInfo.Shader.GetShaderStages();
 
 		std::vector<VkShaderModule> shaderModuleHandles(shaderStages.size());
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfos(shaderStages.size());
@@ -170,7 +170,7 @@ namespace Cobalt
 			.pDynamicStates = dynamicStates
 		};
 
-		const auto& descriptorSetLayouts = mInfo.Shader->GetDescriptorSetLayouts();
+		const auto& descriptorSetLayouts = mInfo.Shader.GetDescriptorSetLayouts();
 		//const auto& pushConstantRanges   = mInfo.Shader->GetPushConstantRanges();
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
@@ -215,14 +215,14 @@ namespace Cobalt
 
 		for (uint32_t i = 0; i < count; i++)
 		{
-			descriptorSetLayouts[i] = mInfo.Shader->GetDescriptorSetLayouts()[set];
+			descriptorSetLayouts[i] = mInfo.Shader.GetDescriptorSetLayouts()[set];
 		}
 
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 			.descriptorPool = descriptorPool,
 			.descriptorSetCount = count,
-			.pSetLayouts = descriptorSetLayouts.data()
+			.pSetLayouts = descriptorSetLayouts.data(),
 		};
 
 		std::vector<VkDescriptorSet> descriptorSetHandles(count);

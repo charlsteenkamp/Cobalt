@@ -4,7 +4,7 @@
 int main()
 {
 	Cobalt::Application app({
-		.EnableImGui = true,
+		.EnableImGui = false,
 		.EnableOptickCapture = true
 	});
 

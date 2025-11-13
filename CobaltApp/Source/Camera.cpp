@@ -47,7 +47,7 @@ namespace Cobalt
 		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 			velocityDir = -mUpDir;
 
-		if (velocityDir.x != 0 || velocityDir.y != 0 || velocityDir.z != 0)
+		if (velocityDir.x != 0.0f || velocityDir.y != 0.0f || velocityDir.z != 0.0f)
 		{
 			mTranslation += mCameraSpeed * deltaTime * glm::normalize(velocityDir);
 

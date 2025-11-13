@@ -14,31 +14,32 @@ namespace Cobalt
 		~SandboxModule();
 
 	public:
-		virtual void OnInit() override;
-		virtual void OnShutdown() override;
-
-		virtual void OnUpdate(float deltaTime) override;
-		virtual void OnRender() override;
-
-		virtual void OnUIRender() override;
-
-		virtual void OnMouseMove(float x, float y) override;
-
-	private:
-		void RenderPointLight(const char* name, PointLightData& pointLight);
-		void RenderUITransform(const char* name, Transform& transform);
-		void RenderUIMaterial(const char* name, MaterialHandle material);
+		void OnInit() override;
+		void OnShutdown() override;
+		void OnUpdate(float deltaTime) override;
+		void OnRender() override;
+		void OnUIRender() override;
+		void OnMouseMove(float x, float y) override;
 
 	private:
 		CameraController mCameraController;
 		SceneData mScene;
 
-		std::unique_ptr<Model> mSponzaModel;
+		Mesh* mCubeMesh = nullptr;
+		Mesh* mSphereMesh = nullptr;
 
-		bool mCaptureMouse = true;
-		float mDeltaTime = 0.0f;
+		Material* mPBRMaterial = nullptr;
 
-		int32_t mRenderMeshCount = 0;
+		float mLastDeltaTime = 0.0f;
+		
+		glm::vec4 mSphereBaseColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+		float mSphereRoughnessFactor = 1.0f;
+		float mSphereMetallicFactor  = 0.0f;
+		bool mSphereMaterialChanged = false;
+
+		uint32_t mSphereGridSize = 10;
+
+
 	};
 
 }

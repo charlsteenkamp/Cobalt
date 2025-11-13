@@ -203,9 +203,6 @@ namespace Cobalt
 			physicalDeviceFeatures.shaderInt64 = VK_TRUE;
 			physicalDeviceFeatures.samplerAnisotropy = VK_TRUE;
 
-			//VkPhysicalDeviceVulkan11Features physicalDeviceVulkan11Features = {};
-			//physicalDeviceVulkan11Features.variablePointers = VK_TRUE;
-
 			VkDeviceCreateInfo createInfo = {
 				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 				.pNext = &shaderDrawParametersFeatures,
@@ -452,7 +449,9 @@ namespace Cobalt
 		// Start command buffer
 
 		{
-			VK_CALL(vkResetCommandPool(mDevice, fd.CommandPool, 0));
+			CO_PROFILE_CATEGORY("Command Buffer Reallocation & Restart", Optick::Category::Wait);
+
+			VK_CALL(vkResetCommandPool(mDevice, fd.CommandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT));
 
 			mActiveCommandBuffer = AllocateCommandBuffer();
 

@@ -193,9 +193,21 @@ namespace Cobalt
 		{
 			const DescriptorSetInfo& descriptorSetInfo = mDescriptorSetInfos[mDescriptorSpaceIndexMap.at(set)];
 
+			VkDescriptorBindingFlags descriptorBindingFlags[] = {
+				0, 0, 0,
+				VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT /* | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT*/
+			};
+
+			VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlagsCreateInfo = {
+				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+				.bindingCount = 4,
+				.pBindingFlags = descriptorBindingFlags
+			};
+
 			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-				.flags = 0,
+				.pNext = &descriptorSetLayoutBindingFlagsCreateInfo,
+				.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
 				.bindingCount = (uint32_t)descriptorSetInfo.Bindings.size(),
 				.pBindings = descriptorSetInfo.Bindings.data(),
 			};

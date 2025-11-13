@@ -3,7 +3,7 @@ module PBRShading;
 // Trowbridge-Reitz GGX normal distribution function
 //   n - normal
 //   h - halfway vector between light dir and normal
-public float DistributionGGX(vec3 n, vec3 h, float roughness)
+public float DistributionGGX(in float3 n, in float3 h, in float roughness)
 {
 	float a      = roughness * roughness;
 	float a2     = a * a;
@@ -12,7 +12,7 @@ public float DistributionGGX(vec3 n, vec3 h, float roughness)
 
 	float num    = a2;
 	float denom  = nDotH2 * (a2 - 1.0) + 1.0;
-	denom        = M_PI * denom * denom;
+	denom        = float.getPi() * denom * denom;
 
 	return num / denom;	
 }
@@ -33,7 +33,7 @@ public float GeometrySchlickGGX(float nDotV, float roughness)
 // n - normal
 // v - view dir
 // l - light dir
-public float GeometrySmith(vec3 n, vec3 v, vec3 l, float roughness)
+public float GeometrySmith(in float3 n, in float3 v, in float3 l, in float roughness)
 {
 	float nDotV = saturate(dot(n, v));
 	float nDotL = saturate(dot(n, l));
@@ -43,9 +43,9 @@ public float GeometrySmith(vec3 n, vec3 v, vec3 l, float roughness)
 	return ggx1 * ggx2;
 }
 
-// cosTheta - dot product between halfway vector and view vector
+// hDotV - dot product between halfway vector and view vector
 // f0 - base reflectivity
-public float FresnelSchlick(float cosTheta, vec3 f0)
+public float3 FresnelSchlick(in float hDotV, in float3 f0)
 {
-	return f0 + (1.0 - f0) * pow(saturate(1.0 - cosTheta), 5.0);
+	return f0 + (float3(1.0) - f0) * pow(saturate(1.0 - hDotV), 5.0);
 }

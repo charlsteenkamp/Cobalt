@@ -1,6 +1,8 @@
 #include "copch.hpp"
 #include "SandboxModule.hpp"
 #include "Application.hpp"
+#include "AssetManager.hpp"
+
 #include <imgui.h>
 
 namespace Cobalt
@@ -35,11 +37,37 @@ namespace Cobalt
 		CO_PROFILE_FN();
 
 		GLFWwindow* window = Application::Get()->GetWindow().GetWindow();
-
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-		mSponzaModel = std::make_unique<Model>("CobaltApp/Assets/Sponza/sponza.obj");
-		mRenderMeshCount = mSponzaModel->GetMeshes().size();
+		Model cubeModel("CobaltApp/Assets/Models/Cube.glb");
+		Model sphereModel("CobaltApp/Assets/Models/Sphere.glb");
+		
+		mCubeMesh = AssetManager::GetMesh(cubeModel.GetMeshAssetHandle());
+		mSphereMesh = AssetManager::GetMesh(sphereModel.GetMeshAssetHandle());
+
+		/*
+		MaterialInfo sphereMaterialInfo = MaterialInfo {
+			.MaterialData = {
+				.BaseColorFactor = { 1.0f, 0.0f, 0.0f, 1.0f },
+				.RoughnessFactor = 0.0f,
+				.MetallicFactor = 0.0f
+			},
+			.Pipeline = Renderer::GetPBRPipeline()
+		};
+
+		for (uint32_t y = 0; y < mSphereGridSize; y++)
+		{
+			for (uint32_t x = 0; x < mSphereGridSize; x++)
+			{
+				AssetHandle pbrMaterialAssetHandle = AssetManager::RegisterMaterial(sphereMaterialInfo);
+				mPBRMaterial = AssetManager::GetMaterial(pbrMaterialAssetHandle);
+
+
+			}
+		}
+
+		mSphereMesh->SetMaterialAssetHandle(pbrMaterialAssetHandle);
+		*/
 	}
 
 	void SandboxModule::OnShutdown()
@@ -56,27 +84,40 @@ namespace Cobalt
 
 		if (currentTime - lastTime > 1.0f)
 		{
-			mDeltaTime = deltaTime;
 			lastTime = currentTime;
-
-			if (!Application::Get()->GetInfo().EnableImGui)
-				std::cout << "Frame Time: " << deltaTime * 1000.0f << "ms" << std::endl << "FPS: " << 1.0f / deltaTime << std::endl;
+			mLastDeltaTime = deltaTime;
 		}
 
 		GLFWwindow* window = Application::Get()->GetWindow().GetWindow();
 
+		static bool captureMouse = true;
+
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		{
-			mCaptureMouse = false;
+			captureMouse = false;
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
 		else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 		{
-			mCaptureMouse = true;
+			captureMouse = true;
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		}
 
 		mCameraController.OnUpdate(deltaTime);
+
+		if (mSphereMaterialChanged)
+		{
+			Material* defaultMaterial = AssetManager::GetMaterial(CO_DEFAULT_MATERIAL_ASSET);
+
+			MaterialData& materialData = defaultMaterial->GetMaterialData();
+			materialData.BaseColorFactor = mSphereBaseColor;
+			materialData.RoughnessFactor = mSphereRoughnessFactor;
+			materialData.MetallicFactor = mSphereMetallicFactor;
+
+			Renderer::UploadMaterial(CO_DEFAULT_MATERIAL_ASSET, *defaultMaterial);
+
+			mSphereMaterialChanged = false;
+		}
 	}
 
 	void SandboxModule::OnRender()
@@ -88,109 +129,37 @@ namespace Cobalt
 
 		mScene.DirectionalLight.Direction = glm::normalize(mScene.DirectionalLight.Direction);
 
+		Transform cubeTransform;
+		cubeTransform.Scale = { 10.0f, 0.2f, 10.0f };
+
+		Transform sphereTransform;
+		sphereTransform.Translation = { 0.0f, 2.0f, 0.0f };
+
 		Renderer::BeginScene(mScene);
 
-		Transform transform;
-
-		const std::vector<std::unique_ptr<Mesh>>& meshes = mSponzaModel->GetMeshes();
-
-		for (int32_t i = 0; i < mRenderMeshCount; i++)
-		{
-			Renderer::DrawMesh(transform, meshes[i].get());
-		}
+		Renderer::DrawMesh(cubeTransform, mCubeMesh);
+		Renderer::DrawMesh(sphereTransform, mSphereMesh);
 
 		Renderer::EndScene();
 	}
 
 	void SandboxModule::OnUIRender()
 	{
-		CO_PROFILE_FN();
+		ImGui::Begin("Debug");
 
-		if (ImGui::Begin("SandboxModule"))
-		{
-			ImGui::Text("Frame Time: %fms", mDeltaTime * 1000.0f);
-			ImGui::Text("FPS: %f", 1.0f / mDeltaTime);
-			
-			if (ImGui::TreeNode("Scene Settings"))
-			{
-				//for (uint32_t i = 0; i < mScene.PointLightCount; i++)
-				//	RenderPointLight(std::format("Point Light {}", i).c_str(), mScene.PointLights[i]);
+		ImGui::Text("Delta Time: %fms", mLastDeltaTime * 1000.0f);
+		ImGui::DragFloat3("Directional Light", &mScene.DirectionalLight.Direction.x, 0.1f, -1.0f, 1.0f);
 
-				ImGui::DragFloat3("Directional Light Direction", &mScene.DirectionalLight.Direction.x, 0.1f, -10.0f, 10.0f);
-				ImGui::ColorEdit3("Directional Light Ambient", &mScene.DirectionalLight.Ambient.r);
-				ImGui::ColorEdit3("Directional Light Diffuse", &mScene.DirectionalLight.Diffuse.r);
-				ImGui::ColorEdit3("Directional Light Specular", &mScene.DirectionalLight.Specular.r);
-
-				ImGui::DragInt("Render Mesh Count", &mRenderMeshCount, 0, mSponzaModel->GetMeshes().size());
-
-				ImGui::TreePop();
-			}
-
-			if (ImGui::TreeNode("Transforms"))
-			{
-				//RenderUITransform("Sphere", mSphereTransform);
-				//RenderUITransform("Floor", mFloorTransform);
-				ImGui::TreePop();
-			}
-
-			/*if (ImGui::TreeNode("Materials"))
-			{
-				//RenderUIMaterial("Cube", mCubeMat);
-				//RenderUIMaterial("Floor", mFloorMat);
-				ImGui::TreePop();
-			}*/
-		}
+		mSphereMaterialChanged |= ImGui::DragFloat3("Sphere Base Color", &mSphereBaseColor.x, 0.01f, 0.0f, 1.0f);
+		mSphereMaterialChanged |= ImGui::DragFloat("Sphere Roughness Factor", &mSphereRoughnessFactor, 0.01f, 0.0f, 1.0f);
+		mSphereMaterialChanged |= ImGui::DragFloat("Sphere Metallic Factor", &mSphereMetallicFactor, 0.01f, 0.0f, 1.0f);
 
 		ImGui::End();
 	}
 
 	void SandboxModule::OnMouseMove(float x, float y)
 	{
-		CO_PROFILE_FN();
-
-		if (mCaptureMouse)
-			mCameraController.OnMouseMove(x, y);
-	}
-
-	void SandboxModule::RenderPointLight(const char* name, PointLightData& pointLight)
-	{
-		CO_PROFILE_FN();
-
-		ImGui::Text("Pointlight: %s", name);
-		
-		ImGui::DragFloat3(std::format("{} Position", name).c_str(), &pointLight.Position.x, 0.2f, -10.0f, 10.0f);
-		ImGui::ColorEdit3(std::format("{} Ambient Color", name).c_str(), &pointLight.Ambient.r);
-		ImGui::ColorEdit3(std::format("{} Diffuse Color", name).c_str(), &pointLight.Diffuse.r);
-		ImGui::ColorEdit3(std::format("{} Specular Color ", name).c_str(), &pointLight.Specular.r);
-		ImGui::DragFloat (std::format("{} Constant Coefficient", name).c_str(), &pointLight.Constant, 0.001f, 0.0f, 2.0f);
-		ImGui::DragFloat (std::format("{} Linear Coefficient", name).c_str(), &pointLight.Linear, 0.001f, 0.0f, 2.0f);
-		ImGui::DragFloat (std::format("{} Quadratic Coefficient", name).c_str(), &pointLight.Quadratic, 0.001f, 0.0f, 2.0f);
-
-		ImGui::Separator();
-	}
-
-	void SandboxModule::RenderUITransform(const char* name, Transform& transform)
-	{
-		CO_PROFILE_FN();
-
-		ImGui::Text("Transform: %s", name);
-		ImGui::DragFloat3(std::format("{} Translation", name).c_str(), &transform.Translation.x, 0.2f, -10.0f, 10.0f);
-		ImGui::DragFloat3(std::format("{} Rotation", name).c_str(),    &transform.Rotation.x, 1.0f, 0.0f, 360.0f);
-		ImGui::DragFloat3(std::format("{} Scale", name).c_str(),       &transform.Scale.x, 0.2f, -10.0f, 10.0f);
-
-		ImGui::Separator();
-	}
-
-	void SandboxModule::RenderUIMaterial(const char* name, MaterialHandle material)
-	{
-		CO_PROFILE_FN();
-
-		//MaterialData& materialData = Renderer::GetMaterial(material);
-
-		//ImGui::Text("Material: %s", name);
-		//ImGui::DragFloat(std::format("{}  Specular", name).c_str(), &materialData.Shininess, 1.0f, 0.0f, 1024.0f);
-
-		//ImGui::Separator();
+		mCameraController.OnMouseMove(x, y);
 	}
 
 }

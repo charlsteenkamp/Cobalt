@@ -2,23 +2,39 @@ module Material;
 
 public struct UnpackedMaterial
 {
-	public float3 Albedo;
-	public float3 Metallic;
-	public float3 Roughness;
+	public float4 BaseColor;
+	public float3 Normal;
+	public float  Occlusion;
+	public float  Roughness;
+	public float  Metallic;
+	public float3 Emissive;
 };
 
 public struct Material
 {
-	public uint AlbedoMapHandle;
-	public uint MetallicMapHandle;
-	public uint RoughnessMapHandle;
+	public uint   BaseColorMapHandle;
+	public uint   NormalMapHandle;
+	public uint   OcclusionRoughnessMetallicMapHandle;
+	public uint   EmissiveMap;
 
-	public UnpackedMaterial Unpack(in Sampler2D albedoTexture, in Sampler2D metallicTexture, in Sampler2D roughnessTexture, in float2 uv)
+	public float4 BaseColorFactor;
+
+	public float  NormalScale;
+	public float  OcclusionStrength;
+	public float  RoughnessFactor;
+	public float  MetallicFactor;
+
+	public float3 EmissiveFactor;
+
+	public UnpackedMaterial Unpack(in Sampler2D baseColorMap, in Sampler2D normalMap, in Sampler2D occlusionRoughnessMetallicMap, in Sampler2D emissiveMap, in float2 uv)
 	{
 		UnpackedMaterial unpackedMaterial;
-		unpackedMaterial.Albedo  = albedoTexture.Sample(uv).xyz;
-		unpackedMaterial.Metallic = metallicTexture.Sample(uv).xyz;
-		unpackedMaterial.Roughness = roughnessTexture.Sample(uv).xyz;
+		unpackedMaterial.BaseColor = BaseColorFactor   * baseColorMap.Sample(uv);
+		unpackedMaterial.Normal    = NormalScale       * normalMap.Sample(uv).xyz;
+		unpackedMaterial.Occlusion = OcclusionStrength * occlusionRoughnessMetallicMap.Sample(uv).x;
+		unpackedMaterial.Roughness = RoughnessFactor   * occlusionRoughnessMetallicMap.Sample(uv).r;
+		unpackedMaterial.Metallic  = MetallicFactor    * occlusionRoughnessMetallicMap.Sample(uv).b;
+		unpackedMaterial.Emissive  = EmissiveFactor    * emissiveMap.Sample(uv).xyz;
 
 		return unpackedMaterial;
 	}

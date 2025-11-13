@@ -20,12 +20,12 @@ namespace Cobalt
 		CO_PROFILE_FN();
 	}
 
-	void VulkanDescriptorSet::SetBufferBinding(const VulkanBuffer* buffer, uint32_t binding, uint32_t arrayIndex)
+	void VulkanDescriptorSet::SetBufferBinding(const VulkanBuffer& buffer, uint32_t binding, uint32_t arrayIndex)
 	{
 		CO_PROFILE_FN();
 
 		VkDescriptorBufferInfo descriptorBufferInfo = {
-			.buffer = buffer->GetBuffer(),
+			.buffer = buffer.GetBuffer(),
 			.offset = 0,
 			.range = VK_WHOLE_SIZE
 		};
@@ -34,7 +34,7 @@ namespace Cobalt
 
 		VkDescriptorType descriptorType;
 
-		switch (buffer->GetUsageFlags())
+		switch (buffer.GetUsageFlags())
 		{
 			case VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT: descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; break;
 			case VK_BUFFER_USAGE_STORAGE_BUFFER_BIT: descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; break;
@@ -53,14 +53,14 @@ namespace Cobalt
 		mDescriptorWrites.push_back(writeDescSet);
 	}
 
-	void VulkanDescriptorSet::SetImageBinding(const Texture* image, uint32_t binding, uint32_t arrayIndex)
+	void VulkanDescriptorSet::SetImageBinding(const Texture& image, uint32_t binding, uint32_t arrayIndex)
 	{
 		CO_PROFILE_FN();
 
 		VkDescriptorImageInfo descImageInfo = {
-			.sampler = image->GetSampler(),
-			.imageView = image->GetImageView(),
-			.imageLayout = image->GetImageLayout()
+			.sampler = image.GetSampler(),
+			.imageView = image.GetImageView(),
+			.imageLayout = image.GetImageLayout()
 		};
 
 		mDescriptorImageInfos.push_back(descImageInfo);

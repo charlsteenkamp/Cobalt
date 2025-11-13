@@ -1,5 +1,6 @@
 #include "copch.hpp"
 #include "Application.hpp"
+#include "AssetManager.hpp"
 #include "Vulkan/Renderer.hpp"
 #include "Vulkan/ImGuiBackend.hpp"
 #include "Vulkan/ShaderCompiler.hpp"
@@ -33,7 +34,6 @@ namespace Cobalt
 	Application::~Application()
 	{
 		CO_PROFILE_FN();
-
 	}
 
 	void Application::Init()
@@ -45,6 +45,7 @@ namespace Cobalt
 
 		ShaderCompiler::Init();
 		Renderer::Init();
+		AssetManager::Init();
 
 		if (mInfo.EnableImGui)
 			ImGuiBackend::Init();
@@ -117,7 +118,7 @@ namespace Cobalt
 		if (mInfo.EnableOptickCapture)
 		{
 			CO_PROFILE_STOP_CAPTURE();
-			CO_PROFILE_SAVE_CAPTURE("capture.opt");
+			CO_PROFILE_SAVE_CAPTURE("capture_2025-11-13.opt");
 		}
 	}
 
@@ -136,9 +137,12 @@ namespace Cobalt
 
 		vkDeviceWaitIdle(GraphicsContext::Get().GetDevice());
 
-		ImGuiBackend::Shutdown();
-		ShaderCompiler::Shutdown();
+		if (mInfo.EnableImGui)
+			ImGuiBackend::Shutdown();
+
+		AssetManager::Shutdown();
 		Renderer::Shutdown();
+		ShaderCompiler::Shutdown();
 
 		mGraphicsContext->Shutdown();
 		mWindow->Close();

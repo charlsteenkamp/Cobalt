@@ -1,6 +1,7 @@
 #include "copch.hpp"
 #include "Renderer.hpp"
 #include "Application.hpp"
+#include "AssetManager.hpp"
 
 #include <backends/imgui_impl_vulkan.h>
 
@@ -97,24 +98,26 @@ namespace Cobalt
 			for (uint32_t i = 0; i < frameCount; i++)
 			{
 				sData->SceneDataUniformBuffers[i]    = VulkanBuffer::CreateMappedBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-				sData->ObjectStorageBuffers[i]       = VulkanBuffer::CreateMappedBuffer(sData->MaxObjectCount * sizeof(ObjectData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-				sData->MaterialDataStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->MaxMaterialCount * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+				sData->ObjectStorageBuffers[i]       = VulkanBuffer::CreateMappedBuffer(sData->sMaxObjectCount * sizeof(ObjectData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+				sData->MaterialDataStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxMaterialCount * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 			}
 
-			sData->Objects.reserve(sData->MaxObjectCount);
-			sData->Materials.reserve(sData->MaxMaterialCount);
+			sData->Objects.reserve(sData->sMaxObjectCount);
+			sData->Materials.reserve(sData->sMaxMaterialCount);
 		}
 
-		// Create default textures
+		// Shader compilation & pipeline creation
 
-		{
-			sData->Textures.reserve(CO_BINDLESS_DESCRIPTOR_COUNT);
+		sData->Shaders = std::make_unique<ShaderLibrary>("CobaltApp/Assets/Shaders");
+		sData->PBRShaderHandle = sData->Shaders->RegisterShader("PBRShader.slang");
 
-			uint8_t data[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
+		PipelineInfo mainPBRPipelineInfo = {
+			.Shader = *sData->Shaders->GetShader(sData->PBRShaderHandle),
+			.PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			.EnableDepthTesting = true
+		};
 
-			sData->Textures.push_back(std::make_unique<Texture>(TextureInfo(1, 1, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)));
-			sData->Textures[0]->CopyData(data);
-		}
+		sData->PBRPipeline = CreatePipeline(mainPBRPipelineInfo, sData->MainRenderPass);
 	}
 
 	void Renderer::Shutdown()
@@ -138,6 +141,50 @@ namespace Cobalt
 		CreateOrRecreateFramebuffers();
 	}
 
+	void Renderer::UploadTexture(const Texture& texture, const Pipeline& pipeline)
+	{
+		CO_PROFILE_FN();
+
+		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
+
+		for (uint32_t i = 0; i < frameCount; i++)
+		{
+			VulkanDescriptorSet* descriptorSet = pipeline.GetDescriptorSet(i);
+			uint32_t textureIndex = descriptorSet->GetDescriptorImageCount();
+
+			descriptorSet->SetImageBinding(texture, sData->sDescriptorSetTextureBinding, textureIndex);
+			descriptorSet->Update();
+		}
+	}
+
+	void Renderer::UploadMaterial(AssetHandle assetHandle, const Material& material)
+	{
+		CO_PROFILE_FN();
+
+		if (sData->AssetMaterialHandleMap.contains(assetHandle))
+		{
+			// Modify the material
+
+			MaterialHandle materialHandle = sData->AssetMaterialHandleMap.at(assetHandle);
+			sData->Materials[materialHandle] = material.GetMaterialData();
+		}
+		else
+		{
+			// Insert the material
+
+			sData->Materials.push_back(material.GetMaterialData());
+			sData->AssetMaterialHandleMap[assetHandle] = sData->Materials.size() - 1;
+		}
+
+		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
+
+		for (uint32_t i = 0; i < frameCount; i++)
+		{
+			sData->MaterialDataStorageBuffers[i]->CopyData(sData->Materials.data(), sData->Materials.size() * sizeof(MaterialData));
+		}
+	}
+
+#if 0
 	TextureHandle Renderer::CreateTexture(const TextureInfo& textureInfo)
 	{
 		CO_PROFILE_FN();
@@ -148,7 +195,16 @@ namespace Cobalt
 		return textureHandle;
 	}
 
-	std::shared_ptr<Material> Renderer::CreateMaterial(const MaterialData& materialData)
+	Texture& Renderer::GetTexture(TextureHandle textureHandle)
+	{
+		CO_PROFILE_FN();
+
+		return *sData->Textures[textureHandle];
+	}
+#endif
+
+#if 0
+	std::unique_ptr<Material> CreateMaterial(const MaterialData& materialData)
 	{
 		CO_PROFILE_FN();
 
@@ -164,7 +220,7 @@ namespace Cobalt
 
 		sData->Materials.push_back(materialData);
 
-		std::shared_ptr<Material> material = std::make_shared<Material>(materialHandle, &sData->Materials[materialHandle]);
+		//std::shared_ptr<Material> material = std::make_shared<Material>(materialHandle, &sData->Materials[materialHandle]);
 
 		sData->MaterialPtrs.push_back(material);
 		sData->MaterialHandleMap[materialHash] = materialHandle;
@@ -190,13 +246,7 @@ namespace Cobalt
 
 		return material;
 	}
-
-	Texture& Renderer::GetTexture(TextureHandle textureHandle)
-	{
-		CO_PROFILE_FN();
-
-		return *sData->Textures[textureHandle];
-	}
+#endif
 
 	void Renderer::BeginScene(const SceneData& scene)
 	{
@@ -267,23 +317,24 @@ namespace Cobalt
 
 		for (const DrawBatch& batch : BatchDrawCalls())
 		{
-			VkBuffer indexBuffer = batch.IndexBuffer->GetBuffer();
-			VkPipeline pipeline = batch.Material->GetPipeline().GetPipeline();
+			const VulkanBuffer& indexBuffer = *batch.IndexBuffer;
+			const Pipeline&     pipeline    = batch.Material->GetPipeline();
 
-			if (indexBuffer != lastIndexBuffer)
+			if (indexBuffer.GetBuffer() != lastIndexBuffer)
 			{
-				lastIndexBuffer = indexBuffer;
-				vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+				lastIndexBuffer = indexBuffer.GetBuffer();
+				vkCmdBindIndexBuffer(commandBuffer, indexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 			}
 
-			if (pipeline != lastPipeline)
+			if (pipeline.GetPipeline() != lastPipeline)
 			{
-				lastPipeline = pipeline;
-				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-				batch.Material->GetGlobalDescriptorSet(frameIndex)->Bind(commandBuffer);
+				lastPipeline = pipeline.GetPipeline();
+				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
+				//batch.Material->GetGlobalDescriptorSet(frameIndex)->Bind(commandBuffer);
+				pipeline.GetDescriptorSet(frameIndex)->Bind(commandBuffer);
 			}
 
-			vkCmdDrawIndexed(commandBuffer, batch.IndexCount, batch.InstanceCount, 0, 0, batch.FirstInstance);
+			vkCmdDrawIndexed(commandBuffer, batch.IndexCount, batch.InstanceCount, batch.FirstIndex, 0, batch.FirstInstance);
 		}
 
 		vkCmdEndRenderPass(commandBuffer);
@@ -292,20 +343,22 @@ namespace Cobalt
 	void Renderer::DrawMesh(const Transform& transform, Mesh* mesh)
 	{
 		CO_PROFILE_FN();
+		
+		for (const MeshSurface& surface : mesh->GetSurfaces())
+		{
+			DrawCall draw;
+			draw.IndexBuffer = mesh->GetIndexBuffer();
+			draw.FirstIndex  = surface.FirstIndex;
+			draw.IndexCount  = surface.IndexCount;
+			draw.Material    = AssetManager::GetMaterial(surface.MaterialAssetHandle);
 
-		DrawCall draw;
-		draw.IndexBuffer = mesh->GetIndexBuffer();
-		draw.IndexCount = mesh->GetIndices().size();
-		draw.Material = mesh->GetMaterial();
-		draw.FirstInstance = sData->DrawCalls.size();
-
-		sData->DrawCalls.push_back(draw);
+			sData->DrawCalls.push_back(draw);
+		}
 
 		ObjectData object;
-		object.Transform = transform.GetTransform();
-		object.NormalMatrix = glm::transpose(glm::inverse(object.Transform));
+		object.Transform       = transform.GetTransform();
+		object.NormalMatrix    = glm::transpose(glm::inverse(object.Transform));
 		object.VertexBufferRef = mesh->GetVertexBufferReference();
-		object.MaterialHandle = draw.Material->GetMaterialHandle();
 
 		sData->Objects.push_back(object);
 	}
@@ -358,9 +411,47 @@ namespace Cobalt
 		}
 	}
 
+	Pipeline* Renderer::CreatePipeline(const PipelineInfo& info, VkRenderPass renderPass)
+	{
+		CO_PROFILE_FN();
+
+		if (renderPass == VK_NULL_HANDLE)
+			renderPass = sData->MainRenderPass;
+
+		sData->Pipelines.push_back(std::make_unique<Pipeline>(info, renderPass));
+
+		// Allocate descriptor sets & set buffer bindings
+
+		Pipeline* pipeline = sData->Pipelines.back().get();
+		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
+
+		std::vector<VulkanDescriptorSet*> descriptorSets = pipeline->AllocateDescriptorSets(GraphicsContext::Get().GetDescriptorPool(), 0, frameCount);
+
+		for (uint32_t i = 0; i < frameCount; i++)
+		{
+			descriptorSets[i]->SetBufferBinding(*sData->SceneDataUniformBuffers[i], sData->sDescriptorSetGlobalBinding);
+			descriptorSets[i]->SetBufferBinding(*sData->ObjectStorageBuffers[i], sData->sDescriptorSetObjectBinding);
+			descriptorSets[i]->SetBufferBinding(*sData->MaterialDataStorageBuffers[i], sData->sDescriptorSetMaterialBinding);
+
+			// Image bindings are set in the `UploadTexture` method.
+
+			//for (uint32_t j = 0; j < sData->Textures.size(); j++)
+			//	descriptorSets[i]->SetImageBinding(sData->Textures[j].get(), 3, j);
+
+			descriptorSets[i]->Update();
+		}
+
+		return pipeline;
+	}
+
 	std::vector<DrawCall> Renderer::CullDrawCalls(const std::vector<DrawCall>& draws)
 	{
+		CO_PROFILE_FN();
+
 		// TODO
+		return draws;
+
+#if 0
 		std::vector<DrawCall> culledDraws;
 
 		for (const DrawCall& draw : draws)
@@ -372,17 +463,21 @@ namespace Cobalt
 		}
 
 		return culledDraws;
+#endif
 	}
 
 	std::vector<DrawBatch> Renderer::BatchDrawCalls()
 	{
+		CO_PROFILE_FN();
+
 		std::vector<DrawBatch> batches;
 		batches.reserve(sData->DrawCalls.size());
 
 		DrawBatch firstBatch;
-		firstBatch.IndexBuffer = sData->DrawCalls[0].IndexBuffer;
-		firstBatch.IndexCount = sData->DrawCalls[0].IndexCount;
-		firstBatch.Material = sData->DrawCalls[0].Material;
+		firstBatch.IndexBuffer   = sData->DrawCalls[0].IndexBuffer;
+		firstBatch.FirstIndex    = sData->DrawCalls[0].FirstIndex;
+		firstBatch.IndexCount    = sData->DrawCalls[0].IndexCount;
+		firstBatch.Material      = sData->DrawCalls[0].Material;
 		firstBatch.FirstInstance = 0;
 		firstBatch.InstanceCount = 1;
 
@@ -390,22 +485,27 @@ namespace Cobalt
 
 		for (uint32_t i = 1; i < sData->DrawCalls.size(); i++)
 		{
-			DrawBatch& lastBatch = batches.back();
+			DrawBatch&      lastBatch = batches.back();
+			const DrawCall& currDraw  = sData->DrawCalls[i];
 
-			bool sameIndexBuffer = sData->DrawCalls[i].IndexBuffer == lastBatch.IndexBuffer;
-			bool sameIndexCount  = sData->DrawCalls[i].IndexCount  == lastBatch.IndexCount;
-			bool sameMaterial    = sData->DrawCalls[i].Material    == lastBatch.Material;
+			VkPipeline currPipeline = currDraw.Material->GetPipeline().GetPipeline();
+			VkPipeline lastPipeline = lastBatch.Material->GetPipeline().GetPipeline();
 
-			if (sameIndexBuffer && sameIndexCount && sameMaterial)
+			bool sameIndexBuffer = currDraw.IndexBuffer == lastBatch.IndexBuffer;
+			bool samePipeline    = lastPipeline == currPipeline;
+
+			if (sameIndexBuffer && samePipeline)
 			{
+				lastBatch.IndexCount += currDraw.IndexCount;
 				lastBatch.InstanceCount++;
 			}
 			else
 			{
 				DrawBatch newBatch;
-				newBatch.IndexBuffer = sData->DrawCalls[i].IndexBuffer;
-				newBatch.IndexCount = sData->DrawCalls[i].IndexCount;
-				newBatch.Material = sData->DrawCalls[i].Material;
+				newBatch.IndexBuffer   = currDraw.IndexBuffer;
+				newBatch.FirstIndex    = currDraw.FirstIndex;
+				newBatch.IndexCount    = currDraw.IndexCount;
+				newBatch.Material      = currDraw.Material;
 				newBatch.FirstInstance = i;
 				newBatch.InstanceCount = 1;
 

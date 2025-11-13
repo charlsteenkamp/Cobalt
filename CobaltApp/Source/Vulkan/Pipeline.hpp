@@ -10,7 +10,7 @@ namespace Cobalt
 
 	struct PipelineInfo
 	{
-		std::shared_ptr<Shader> Shader;
+		Shader& Shader;
 
 		VkPrimitiveTopology PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
@@ -33,6 +33,14 @@ namespace Cobalt
 	public:
 		VkPipeline GetPipeline() const { return mPipeline; }
 		VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
+
+		VulkanDescriptorSet* GetDescriptorSet(uint32_t frameIndex) const
+		{
+			if (frameIndex >= mDescriptorSets.size())
+				return nullptr;
+
+			return mDescriptorSets[frameIndex].get();
+		}
 
 	private:
 		PipelineInfo mInfo;

@@ -29,14 +29,9 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		//std::unique_ptr<VulkanBuffer> buffer = std::make_unique<VulkanBuffer>(size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		std::unique_ptr<VulkanBuffer> buffer = std::make_unique<VulkanBuffer>(size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 0);
 
 		// Upload data to stagingBuffer
-
-		//VulkanBuffer stagingBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		//stagingBuffer.CopyData(offset, size, data);
-
-		std::unique_ptr<VulkanBuffer> buffer = std::make_unique<VulkanBuffer>(size, usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 0);
 
 		std::unique_ptr<VulkanBuffer> stagingBuffer = CreateMappedBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 		stagingBuffer->CopyData(data);
@@ -55,12 +50,7 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		//std::unique_ptr<VulkanBuffer> buffer = std::make_unique<VulkanBuffer>(size, usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		//buffer->Map(offset, size, data);
-
-		std::unique_ptr<VulkanBuffer> buffer = std::make_unique<VulkanBuffer>(size, usage, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT);
-
-		return buffer;
+		return std::make_unique<VulkanBuffer>(size, usage, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT);
 	}
 
 	VulkanBuffer::VulkanBuffer(uint32_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags allocationFlags)
@@ -81,30 +71,13 @@ namespace Cobalt
 			.usage = VMA_MEMORY_USAGE_AUTO,
 		};
 
-		//VK_CALL(vkCreateBuffer(GraphicsContext::Get().GetDevice(), &bufferCreateInfo, nullptr, &mBuffer));
 		VK_CALL(vmaCreateBuffer(GraphicsContext::Get().GetAllocator(), &bufferCreateInfo, &allocCreateInfo, &mBuffer, &mAllocation, &mAllocationInfo));
-
-#if 0
-		vkGetBufferMemoryRequirements(GraphicsContext::Get().GetDevice(), mBuffer, &mMemoryRequirements);
-
-		VkMemoryAllocateInfo memoryAllocateInfo = {
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = mMemoryRequirements.size,
-			.memoryTypeIndex = FindMemoryType(mMemoryRequirements.memoryTypeBits, memoryPropertyFlags, GraphicsContext::Get().GetPhysicalDevice())
-		};
-
-		VK_CALL(vkAllocateMemory(GraphicsContext::Get().GetDevice(), &memoryAllocateInfo, nullptr, &mMemory));
-
-		VK_CALL(vkBindBufferMemory(GraphicsContext::Get().GetDevice(), mBuffer, mMemory, 0));
-#endif
 	}
 
 	VulkanBuffer::~VulkanBuffer()
 	{
 		CO_PROFILE_FN();
 
-		//vkFreeMemory(GraphicsContext::Get().GetDevice(), mMemory, nullptr);
-		//vkDestroyBuffer(GraphicsContext::Get().GetDevice(), mBuffer, nullptr);
 		vmaDestroyBuffer(GraphicsContext::Get().GetAllocator(), mBuffer, mAllocation);
 	}
 
@@ -112,7 +85,6 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		//VK_CALL(vkMapMemory(GraphicsContext::Get().GetDevice(), mMemory, offset, size, 0, data));
 		VK_CALL(vmaMapMemory(GraphicsContext::Get().GetAllocator(), mAllocation, data));
 	}
 
@@ -120,7 +92,6 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		//vkUnmapMemory(GraphicsContext::Get().GetDevice(), mMemory);
 		vmaUnmapMemory(GraphicsContext::Get().GetAllocator(), mAllocation);
 	}
 

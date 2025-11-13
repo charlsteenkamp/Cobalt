@@ -1,11 +1,13 @@
 #pragma once
 #include "GraphicsContext.hpp"
 #include "ShaderStructs.hpp"
+#include "ShaderLibrary.hpp"
 #include "Pipeline.hpp"
 #include "VulkanBuffer.hpp"
 #include "Texture.hpp"
 #include "Material.hpp"
 #include "Mesh.hpp"
+#include "Asset.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -14,6 +16,7 @@
 #include <glm/gtc/matrix_inverse.hpp>
 
 #include <array>
+#include <memory>
 
 namespace Cobalt
 {
@@ -35,14 +38,15 @@ namespace Cobalt
 	struct DrawCall
 	{
 		VulkanBuffer* IndexBuffer = nullptr;
+		uint32_t FirstIndex = 0;
 		uint32_t IndexCount = 0;
 		Material* Material = nullptr;
-		uint32_t FirstInstance = 0;
 	};
 
 	struct DrawBatch
 	{
 		VulkanBuffer* IndexBuffer = nullptr;
+		uint32_t FirstIndex = 0;
 		uint32_t IndexCount = 0;
 		Material* Material = nullptr;
 		uint32_t FirstInstance = 0;
@@ -58,34 +62,38 @@ namespace Cobalt
 		static void OnResize();
 
 	public:
-		static TextureHandle CreateTexture(const TextureInfo& textureInfo);
+		static VkRenderPass GetMainRenderPass() { return sData->MainRenderPass; }
+		static const Pipeline& GetPBRPipeline() { return *sData->PBRPipeline; }
 
-		static std::shared_ptr<Material> CreateMaterial(const MaterialData& materialData);
+		static MaterialHandle GetMaterialHandleFromAssetHandle(AssetHandle materialAssetHandle)
+		{
+			return sData->AssetMaterialHandleMap.at(materialAssetHandle);
+		}
 
-		static Texture& GetTexture(TextureHandle textureHandle);
+	public:
+		// Called by Assetmanager
+		static void UploadTexture(const Texture& texture, const Pipeline& pipeline);
 
+		// Called by AssetManager whenever a new material is registered, or when an existing material's data changes
+		static void UploadMaterial(AssetHandle assetHandle, const Material& material);
+
+	public:
 		static void BeginScene(const SceneData& scene);
 		static void EndScene();
 
 		static void DrawMesh(const Transform& transform, Mesh* mesh);
 
-	public:
-		static VkRenderPass GetMainRenderPass() { return sData->MainRenderPass; }
-
 	private:
 		static void CreateOrRecreateDepthTexture();
 		static void CreateOrRecreateFramebuffers();
+
+		// Returns non-owning pointer to created pipeline
+		static Pipeline* CreatePipeline(const PipelineInfo& info, VkRenderPass renderPass);
 
 		static std::vector<DrawCall> CullDrawCalls(const std::vector<DrawCall>& draws);
 		static std::vector<DrawBatch> BatchDrawCalls();
 
 	private:
-		struct PushConstants
-		{
-			glm::mat4 TransformMatrix;
-			alignas(16) VkDeviceAddress VertexBufferRef;
-		};
-
 		struct RendererData
 		{
 			VkRenderPass MainRenderPass;
@@ -93,32 +101,33 @@ namespace Cobalt
 
 			std::unique_ptr<Texture> DepthTexture;
 
-			static constexpr uint32_t sGlobalDescriptorSetIndex   = 0;
-			static constexpr uint32_t sMaterialDescriptorSetIndex = 1;
-			static constexpr uint32_t sObjectDescriptorSetIndex   = 2;
-
 			SceneData ActiveScene;
+
+			std::unique_ptr<ShaderLibrary> Shaders;
+			ShaderHandle PBRShaderHandle;
+
+			std::vector<std::unique_ptr<Pipeline>> Pipelines;
+			Pipeline* PBRPipeline = nullptr;
 
 			// per frame-in-flight
 			std::vector<std::unique_ptr<VulkanBuffer>> SceneDataUniformBuffers;
 			std::vector<std::unique_ptr<VulkanBuffer>> ObjectStorageBuffers;
 			std::vector<std::unique_ptr<VulkanBuffer>> MaterialDataStorageBuffers;
 
-			std::vector<std::unique_ptr<Texture>> Textures;
-
-			static constexpr uint32_t MaxMaterialCount = 100;
-			static constexpr uint32_t MaxObjectCount = 10000;
-
-			std::unordered_map<size_t, MaterialHandle> MaterialHandleMap;
-
+			std::vector<ObjectData>   Objects;
 			std::vector<MaterialData> Materials;
-			std::vector<std::shared_ptr<Material>> MaterialPtrs;
 
-			std::vector<ObjectData> Objects;
+			static constexpr uint32_t sDescriptorSetGlobalBinding   = 0;
+			static constexpr uint32_t sDescriptorSetObjectBinding   = 1;
+			static constexpr uint32_t sDescriptorSetMaterialBinding = 2;
+			static constexpr uint32_t sDescriptorSetTextureBinding  = 3;
+
+			static constexpr uint32_t sMaxMaterialCount = 100;
+			static constexpr uint32_t sMaxObjectCount   = 10000;
+			
+			std::unordered_map<AssetHandle, MaterialHandle> AssetMaterialHandleMap;
 
 			std::vector<DrawCall> DrawCalls;
-
-			static constexpr const char* sDefaultShaderFilePath = "CobaltApp/Assets/Shaders/DefaultShader.glsl";
 		};
 
 		inline static RendererData* sData = nullptr;
