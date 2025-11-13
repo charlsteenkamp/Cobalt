@@ -41,16 +41,19 @@ namespace Cobalt
 
 		{
 			sData->CommandPools.resize(graphicsContext.GetFrameCount());
+			sData->CommandBuffers.resize(graphicsContext.GetFrameCount());
 
 			for (uint32_t i = 0; i < graphicsContext.GetFrameCount(); i++)
 			{
 				VkCommandPoolCreateInfo commandPoolCreateInfo = {
 					.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-					.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+					.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 					.queueFamilyIndex = (uint32_t)graphicsContext.GetQueueFamily()
 				};
 
 				VK_CALL(vkCreateCommandPool(graphicsContext.GetDevice(), &commandPoolCreateInfo, nullptr, &sData->CommandPools[i]));
+
+				sData->CommandBuffers[i] = GraphicsContext::Get().AllocateCommandBuffer(sData->CommandPools[i]);
 			}
 		}
 
@@ -204,10 +207,9 @@ namespace Cobalt
 
 		// Restart command buffer
 
-		VK_CALL(vkResetCommandPool(GraphicsContext::Get().GetDevice(), commandPool, 0));
-		sData->CommandBuffer = GraphicsContext::Get().AllocateCommandBuffer(commandPool);
+		sData->ActiveCommandBuffer = sData->CommandBuffers[frameIndex];
 
-		CO_PROFILE_COMMAND_BUFFER(sData->CommandBuffer);
+		CO_PROFILE_COMMAND_BUFFER(sData->ActiveCommandBuffer);
 		CO_PROFILE_GPU_EVENT("ImGui Rendering");
 
 		VkCommandBufferBeginInfo beginInfo = {
@@ -215,7 +217,7 @@ namespace Cobalt
 			.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
 		};
 
-		VK_CALL(vkBeginCommandBuffer(sData->CommandBuffer, &beginInfo));
+		VK_CALL(vkBeginCommandBuffer(sData->ActiveCommandBuffer, &beginInfo));
 
 		// Submit render pass
 
@@ -228,13 +230,13 @@ namespace Cobalt
 			.pClearValues = nullptr,
 		};
 
-		vkCmdBeginRenderPass(sData->CommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), sData->CommandBuffer);
-		vkCmdEndRenderPass(sData->CommandBuffer);
+		vkCmdBeginRenderPass(sData->ActiveCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), sData->ActiveCommandBuffer);
+		vkCmdEndRenderPass(sData->ActiveCommandBuffer);
 
 		// End command buffer
 
-		VK_CALL(vkEndCommandBuffer(sData->CommandBuffer));
+		VK_CALL(vkEndCommandBuffer(sData->ActiveCommandBuffer));
 
 		// Render viewports
 

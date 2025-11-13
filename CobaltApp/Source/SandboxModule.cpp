@@ -88,10 +88,11 @@ namespace Cobalt
 		{
 			lastTime = currentTime;
 			mLastDeltaTime = deltaTime;
+			mLastFPS = 1.0f / mLastDeltaTime;
 
 			if (!application->GetInfo().EnableImGui)
 			{
-				std::cout << "Frame time: " << mLastDeltaTime * 1000.0f << "ms\n";
+				std::cout << "Frame time: " << mLastDeltaTime * 1000.0f << "ms\, FPS: " << mLastFPS << "fps\n";
 			}
 		}
 
@@ -155,6 +156,7 @@ namespace Cobalt
 		ImGui::Begin("Debug");
 
 		ImGui::Text("Delta Time: %fms", mLastDeltaTime * 1000.0f);
+		ImGui::Text("FPS: %f", mLastFPS);
 		ImGui::DragFloat3("Directional Light", &mScene.DirectionalLight.Direction.x, 0.1f, -1.0f, 1.0f);
 
 		mSphereMaterialChanged |= ImGui::DragFloat3("Sphere Base Color", &mSphereBaseColor.x, 0.01f, 0.0f, 1.0f);
