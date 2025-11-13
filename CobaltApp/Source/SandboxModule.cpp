@@ -137,16 +137,35 @@ namespace Cobalt
 
 		mScene.DirectionalLight.Direction = glm::normalize(mScene.DirectionalLight.Direction);
 
-		Transform cubeTransform;
-		cubeTransform.Scale = { 10.0f, 0.2f, 10.0f };
 
-		Transform sphereTransform;
-		sphereTransform.Translation = { 0.0f, 2.0f, 0.0f };
+
+		Transform cubeTransform;
+		cubeTransform.Scale = { 20.0f, 0.2f, 20.0f };
 
 		Renderer::BeginScene(mScene);
-
 		Renderer::DrawMesh(cubeTransform, mCubeMesh);
-		Renderer::DrawMesh(sphereTransform, mSphereMesh);
+
+		float left = -10.0f;
+		float right = 10.0f;
+		float bottom = 2.0f;
+		float top = 22.0f;
+
+		Transform sphereTransform;
+
+		for (uint32_t i = 0; i < mSphereGridSize; i++)
+		{
+			float x = left + (right - left) * i / float(mSphereGridSize);
+
+			for (uint32_t j = 0; j < mSphereGridSize; j++)
+			{
+				float y = bottom + (top - bottom) * j / float(mSphereGridSize);
+
+				sphereTransform.Translation.x = x;
+				sphereTransform.Translation.y = y;
+
+				Renderer::DrawMesh(sphereTransform, mSphereMesh);
+			}
+		}
 
 		Renderer::EndScene();
 	}

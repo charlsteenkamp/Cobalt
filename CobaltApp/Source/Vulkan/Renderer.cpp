@@ -496,7 +496,7 @@ namespace Cobalt
 
 			if (sameIndexBuffer && samePipeline)
 			{
-				lastBatch.IndexCount += currDraw.IndexCount;
+				//lastBatch.IndexCount += currDraw.IndexCount;
 				lastBatch.InstanceCount++;
 			}
 			else
