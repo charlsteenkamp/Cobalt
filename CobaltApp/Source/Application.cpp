@@ -158,6 +158,9 @@ namespace Cobalt
 	void Application::OnWindowResize(uint32_t width, uint32_t height)
 	{
 		CO_PROFILE_FN();
+
+		for (Module* module : mModules)
+			module->OnResize(width, height);
 	}
 
 	void Application::OnMouseMove(float x, float y)

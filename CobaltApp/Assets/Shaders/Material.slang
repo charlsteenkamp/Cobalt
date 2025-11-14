@@ -8,6 +8,11 @@ public struct UnpackedMaterial
 	public float  Roughness;
 	public float  Metallic;
 	public float3 Emissive;
+
+	public float3 CalculateAmbient()
+	{
+		return float3(0.03) * BaseColor.xyz;
+	}
 };
 
 public struct Material

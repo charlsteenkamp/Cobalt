@@ -45,29 +45,22 @@ namespace Cobalt
 		mCubeMesh = AssetManager::GetMesh(cubeModel.GetMeshAssetHandle());
 		mSphereMesh = AssetManager::GetMesh(sphereModel.GetMeshAssetHandle());
 
-		/*
-		MaterialInfo sphereMaterialInfo = MaterialInfo {
-			.MaterialData = {
-				.BaseColorFactor = { 1.0f, 0.0f, 0.0f, 1.0f },
-				.RoughnessFactor = 0.0f,
-				.MetallicFactor = 0.0f
-			},
-			.Pipeline = Renderer::GetPBRPipeline()
-		};
-
-		for (uint32_t y = 0; y < mSphereGridSize; y++)
+		for (uint32_t y = 0; y < sSphereGridSize; y++)
 		{
-			for (uint32_t x = 0; x < mSphereGridSize; x++)
+			MaterialData sphereMaterialData;
+			sphereMaterialData.BaseColorFactor = { 1.0f, 0.0f, 0.0f, 1.0f };
+			sphereMaterialData.MetallicFactor = float(y) / (sSphereGridSize - 1);
+
+			for (uint32_t x = 0; x < sSphereGridSize; x++)
 			{
+				sphereMaterialData.RoughnessFactor = float(x) / (sSphereGridSize - 1);
+
+				MaterialInfo sphereMaterialInfo = { sphereMaterialData, Renderer::GetPBRPipeline() };
+
 				AssetHandle pbrMaterialAssetHandle = AssetManager::RegisterMaterial(sphereMaterialInfo);
-				mPBRMaterial = AssetManager::GetMaterial(pbrMaterialAssetHandle);
-
-
+				mSphereMaterials[y][x] = AssetManager::GetMaterial(pbrMaterialAssetHandle);
 			}
 		}
-
-		mSphereMesh->SetMaterialAssetHandle(pbrMaterialAssetHandle);
-		*/
 	}
 
 	void SandboxModule::OnShutdown()
@@ -113,7 +106,7 @@ namespace Cobalt
 
 		mCameraController.OnUpdate(deltaTime);
 
-		if (mSphereMaterialChanged)
+		/*if (mSphereMaterialChanged)
 		{
 			MaterialData& materialData   = mPBRMaterial->GetMaterialData();
 			materialData.BaseColorFactor = mSphereBaseColor;
@@ -123,7 +116,7 @@ namespace Cobalt
 			Renderer::UploadMaterial(*mPBRMaterial);
 
 			mSphereMaterialChanged = false;
-		}
+		}*/
 	}
 
 	void SandboxModule::OnRender()
@@ -149,17 +142,18 @@ namespace Cobalt
 		Transform sphereTransform;
 		sphereTransform.Scale = glm::vec3(0.8f);
 
-		for (uint32_t i = 0; i < mSphereGridSize; i++)
+		for (uint32_t i = 0; i < sSphereGridSize; i++)
 		{
-			float x = left + (right - left) * i / float(mSphereGridSize);
+			float y = bottom + (top - bottom) * i / float(sSphereGridSize);
 
-			for (uint32_t j = 0; j < mSphereGridSize; j++)
+			for (uint32_t j = 0; j < sSphereGridSize; j++)
 			{
-				float y = bottom + (top - bottom) * j / float(mSphereGridSize);
+				float x = left + (right - left) * j / float(sSphereGridSize);
 
 				sphereTransform.Translation.x = x;
 				sphereTransform.Translation.y = y;
 
+				mSphereMesh->SetMaterial(mSphereMaterials[i][j]);
 				Renderer::DrawMesh(sphereTransform, mSphereMesh);
 			}
 		}
@@ -169,6 +163,8 @@ namespace Cobalt
 
 	void SandboxModule::OnUIRender()
 	{
+		CO_PROFILE_FN();
+
 		ImGui::Begin("Debug");
 
 		ImGui::Text("Delta Time: %fms", mLastDeltaTime * 1000.0f);
@@ -184,7 +180,16 @@ namespace Cobalt
 
 	void SandboxModule::OnMouseMove(float x, float y)
 	{
+		CO_PROFILE_FN();
+
 		mCameraController.OnMouseMove(x, y);
+	}
+
+	void SandboxModule::OnResize(uint32_t width, uint32_t height)
+	{
+		CO_PROFILE_FN();
+
+		mCameraController.OnResize(width, height);
 	}
 
 }

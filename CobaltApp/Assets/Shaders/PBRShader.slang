@@ -87,8 +87,10 @@ float4 FSMain(VSOutput input, uniform StructuredBuffer<Material> materials, unif
 
 	luminance += gScene.DirectionalLight.CalculateLuminance(unpackedMaterial, normal, viewDir);
 
-	float3 ambient = CalculateAmbient(unpackedMaterial);
-	float3 color = GammaCorrection(luminance + ambient);
+	float3 color = luminance + unpackedMaterial.CalculateAmbient();
+
+	color = color / (color + float3(1.0)); // HDR tonemapping
+	color = pow(color, float3(1.0 / 2.2)); // Gamma correction
 	
 	return float4(color, 1.0);
 }

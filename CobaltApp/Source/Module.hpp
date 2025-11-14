@@ -24,6 +24,7 @@ namespace Cobalt
 		virtual void OnUIRender() {}
 
 		virtual void OnMouseMove(float x, float y) {}
+		virtual void OnResize(uint32_t width, uint32_t height) {}
 
 	public:
 		const std::string& GetName() const { return mName; }

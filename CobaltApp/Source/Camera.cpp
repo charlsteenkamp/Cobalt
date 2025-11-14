@@ -61,6 +61,7 @@ namespace Cobalt
 
 		mViewportWidth = viewportWidth;
 		mViewportHeight = viewportHeight;
+		mAspectRatio = mViewportWidth / mViewportHeight;
 
 		RecalculateProjectionMatrix();
 	}

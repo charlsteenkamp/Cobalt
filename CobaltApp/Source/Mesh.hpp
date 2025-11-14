@@ -44,6 +44,9 @@ namespace Cobalt
 		~Mesh();
 
 	public:
+		void SetMaterial(Material* material) { mMaterialRef = material; }
+
+	public:
 		const std::vector<MeshVertex>& GetVertices()  const { return mVertices; }
 		const std::vector<uint32_t>&   GetIndices()   const { return mIndices;  }
 

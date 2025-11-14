@@ -20,6 +20,7 @@ namespace Cobalt
 		void OnRender() override;
 		void OnUIRender() override;
 		void OnMouseMove(float x, float y) override;
+		void OnResize(uint32_t width, uint32_t height) override;
 
 	private:
 		CameraController mCameraController;
@@ -28,7 +29,9 @@ namespace Cobalt
 		Mesh* mCubeMesh = nullptr;
 		Mesh* mSphereMesh = nullptr;
 
-		Material* mPBRMaterial = nullptr;
+		constexpr static uint32_t sSphereGridSize = 10;
+
+		Material* mSphereMaterials[sSphereGridSize][sSphereGridSize];
 
 		float mLastDeltaTime = 0.0f;
 		float mLastFPS = 0.0f;
@@ -37,8 +40,6 @@ namespace Cobalt
 		float mSphereRoughnessFactor = 1.0f;
 		float mSphereMetallicFactor  = 0.0f;
 		bool mSphereMaterialChanged = false;
-
-		uint32_t mSphereGridSize = 10;
 	};
 
 }
