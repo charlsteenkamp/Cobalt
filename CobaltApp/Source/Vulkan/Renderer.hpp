@@ -37,6 +37,11 @@ namespace Cobalt
 
 	struct DrawCall
 	{
+		DrawCall(const Mesh* mesh)
+			: IndexBuffer(mesh->GetIndexBuffer()), IndexCount(mesh->GetIndices().size()), Material(mesh->GetMaterial())
+		{
+		}
+
 		VulkanBuffer* IndexBuffer = nullptr;
 		uint32_t FirstIndex = 0;
 		uint32_t IndexCount = 0;
@@ -76,7 +81,7 @@ namespace Cobalt
 		static void BeginScene(const SceneData& scene);
 		static void EndScene();
 
-		static void DrawMesh(const Transform& transform, Mesh* mesh);
+		static void DrawMesh(const Transform& transform, const Mesh* mesh);
 
 	private:
 		static void CreateOrRecreateDepthTexture();

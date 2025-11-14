@@ -147,6 +147,7 @@ namespace Cobalt
 		float top = 22.0f;
 
 		Transform sphereTransform;
+		sphereTransform.Scale = glm::vec3(0.8f);
 
 		for (uint32_t i = 0; i < mSphereGridSize; i++)
 		{

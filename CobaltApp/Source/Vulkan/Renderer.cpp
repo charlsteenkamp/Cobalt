@@ -275,7 +275,7 @@ namespace Cobalt
 		vkCmdEndRenderPass(commandBuffer);
 	}
 
-	void Renderer::DrawMesh(const Transform& transform, Mesh* mesh)
+	void Renderer::DrawMesh(const Transform& transform, const Mesh* mesh)
 	{
 		CO_PROFILE_FN();
 		
@@ -290,21 +290,25 @@ namespace Cobalt
 			sData->DrawCalls.push_back(draw);
 		}*/
 
-		DrawCall draw;
+		/*DrawCall draw;
 		draw.IndexBuffer = mesh->GetIndexBuffer();
 		draw.FirstIndex  = 0;
 		draw.IndexCount  = mesh->GetIndices().size();
 		draw.Material    = mesh->GetMaterial();
 
-		sData->DrawCalls.push_back(draw);
+		sData->DrawCalls.push_back(draw);*/
 
-		ObjectData object;
+		sData->DrawCalls.emplace_back(mesh);
+
+		/*ObjectData object;
 		object.Transform       = transform.GetTransform();
 		object.NormalMatrix    = glm::transpose(glm::inverse(object.Transform));
 		object.VertexBufferRef = mesh->GetVertexBufferReference();
 		object.MaterialHandle  = mesh->GetMaterial()->mMaterialHandle;
 
-		sData->Objects.push_back(object);
+		sData->Objects.push_back(object);*/
+
+		sData->Objects.emplace_back(transform.GetTransform(), mesh);
 	}
 
 	void Renderer::CreateOrRecreateDepthTexture()

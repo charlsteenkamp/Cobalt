@@ -1,5 +1,4 @@
 #pragma once
-#include "Material.hpp"
 #include "Vulkan/VulkanBuffer.hpp"
 #include "Asset.hpp"
 
@@ -27,6 +26,8 @@ namespace Cobalt
 		uint32_t IndexCount = 0;
 		AssetHandle MaterialAssetHandle = CO_INVALID_ASSET_HANDLE;
 	};*/
+
+	class Material;
 
 	struct MeshInfo
 	{

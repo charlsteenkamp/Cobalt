@@ -2,6 +2,7 @@
 #include "Mesh.hpp"
 #include "Vulkan/GraphicsContext.hpp"
 #include "Vulkan/Renderer.hpp"
+#include "Material.hpp"
 
 namespace Cobalt
 {

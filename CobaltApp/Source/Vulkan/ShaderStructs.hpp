@@ -1,6 +1,13 @@
 #pragma once
+#include "Mesh.hpp"
+#include "Material.hpp"
+
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #define CO_MAX_POINT_LIGHT_COUNT 16
 
@@ -45,33 +52,15 @@ namespace Cobalt
 		uint32_t PointLightCount;
 	};
 
-#define CO_INVALID_MATERIAL_HANDLE -1
-
-	using TextureHandle = uint32_t;
-	using MaterialHandle = uint32_t;
-
-#define CO_DEFAULT_TEXTURE_HANDLE 0
-
-	struct MaterialData
-	{
-		TextureHandle BaseColorMapHandle                  = CO_DEFAULT_TEXTURE_HANDLE; // albedo for non-metallic materials, base color otherwise
-		TextureHandle NormalMapHandle                     = CO_DEFAULT_TEXTURE_HANDLE; // defined in tangent space
-		TextureHandle OcclusionRoughnessMetallicMapHandle = CO_DEFAULT_TEXTURE_HANDLE; // R - occlusion, G - roughness, B - metallic
-		TextureHandle EmissiveMapHandle                   = CO_DEFAULT_TEXTURE_HANDLE; // RGB
-
-		glm::vec4 BaseColorFactor = glm::vec4(1.0f);
-
-		float NormalScale = 1.0f;
-		float OcclusionStrength = 1.0f;
-		float RoughnessFactor = 1.0f;
-		float MetallicFactor = 0.0f;
-
-		glm::vec3 EmissiveFactor = glm::vec3(0.0f);
-		float __padding1;
-	};
 
 	struct ObjectData
 	{
+		ObjectData(const glm::mat4& transform, const Mesh* mesh)
+			: Transform(transform), NormalMatrix(glm::transpose(glm::inverse(transform))),
+			  VertexBufferRef(mesh->GetVertexBufferReference()), MaterialHandle(mesh->GetMaterial()->GetMaterialHandle())
+		{
+		}
+
 		glm::mat4 Transform = glm::mat4(1.0f);
 		glm::mat4 NormalMatrix = glm::mat4(1.0f);
 		VkDeviceAddress VertexBufferRef = 0;

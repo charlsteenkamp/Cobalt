@@ -489,19 +489,30 @@ namespace Cobalt
 
 			VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-			std::vector<VkCommandBuffer> commandBuffers;
+			uint32_t commandBufferCount = 1;
+
+			VkCommandBuffer commandBuffers[2];
+			commandBuffers[0] = mActiveCommandBuffer;
+
+			if (enableImGui)
+			{
+				commandBuffers[1] = ImGuiBackend::GetActiveCommandBuffer();
+				commandBufferCount = 2;
+			}
+
+			/*std::vector<VkCommandBuffer> commandBuffers;
 			commandBuffers.push_back(mActiveCommandBuffer);
 
 			if (enableImGui)
-				commandBuffers.push_back(ImGuiBackend::GetActiveCommandBuffer());
+				commandBuffers.push_back(ImGuiBackend::GetActiveCommandBuffer());*/
 
 			VkSubmitInfo submitInfo = {
 				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 				.waitSemaphoreCount = 1,
 				.pWaitSemaphores = &fd.ImageAcquiredSemaphore,
 				.pWaitDstStageMask = &waitStage,
-				.commandBufferCount = (uint32_t)commandBuffers.size(),
-				.pCommandBuffers = commandBuffers.data(),
+				.commandBufferCount = commandBufferCount,
+				.pCommandBuffers = commandBuffers,
 				.signalSemaphoreCount = 1,
 				.pSignalSemaphores = &fd.RenderFinishedSemaphore
 			};
