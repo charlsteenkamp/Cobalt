@@ -107,7 +107,8 @@ namespace Cobalt
 		sData->Materials.push_back(std::make_unique<Material>(materialInfo));
 		sData->AssetHandleIdMap[assetHandle] = { EAssetType::Material, sData->Materials.size() - 1};
 
-		Renderer::UploadMaterial(assetHandle, *sData->Materials.back());
+		//Renderer::UploadMaterial(assetHandle, *sData->Materials.back());
+		Renderer::UploadMaterial(*sData->Materials.back());
 
 		return assetHandle;
 	}
@@ -132,7 +133,8 @@ namespace Cobalt
 		sData->Materials.push_back(std::make_unique<Material>(MaterialInfo(MaterialData(), Renderer::GetPBRPipeline())));
 		sData->AssetHandleIdMap[CO_DEFAULT_MATERIAL_ASSET] = { EAssetType::Material, 0 };
 
-		Renderer::UploadMaterial(CO_DEFAULT_MATERIAL_ASSET, *sData->Materials.back());
+		//Renderer::UploadMaterial(CO_DEFAULT_MATERIAL_ASSET, *sData->Materials.back());
+		Renderer::UploadMaterial(*sData->Materials.back());
 	}
 
 

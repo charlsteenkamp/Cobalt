@@ -23,12 +23,8 @@ struct MeshVertex
 {
 	float3 Position;
 	float  TexCoordU;
-
 	float3 Normal;
-
 	float  TexCoordV;
-
-	uint   MaterialHandle;
 };
 
 struct Object
@@ -37,6 +33,8 @@ struct Object
 	float4x4 NormalMatrix;
 
 	ConstBufferPointer<MeshVertex> Vertices;
+
+	uint MaterialHandle;
 };
 
 struct VSOutput
@@ -65,7 +63,7 @@ VSOutput VSMain(uniform StructuredBuffer<Object> objects, uint instanceID: SV_In
 	output.Normal         = mul(float3x3(object.NormalMatrix), vertex.Normal);
 	output.UV             = float2(vertex.TexCoordU, vertex.TexCoordV);
 	output.FragPosition   = positionWorld.xyz;
-	output.MaterialHandle = vertex.MaterialHandle;
+	output.MaterialHandle = object.MaterialHandle;
 
 	return output;
 }
@@ -93,12 +91,5 @@ float4 FSMain(VSOutput input, uniform StructuredBuffer<Material> materials, unif
 	float3 color = GammaCorrection(luminance + ambient);
 	
 	return float4(color, 1.0);
-	//return float4(unpackedMaterial.BaseColor.xyz, 1.0);
-	//return float4(normal, 1.0);
-	//return float4(1.0);
-	//return float4(textures[0].Sample(input.UV).xyz, 1.0);
-	//return float4(float(input.MaterialHandle), 1.0, 0.0, 1.0);
-	//return float4(input.UV, 1.0, 1.0);
-	//return float4(float(input.MaterialHandle), 1.0 - float(input.MaterialHandle), 0.0, 1.0);
 }
 

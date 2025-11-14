@@ -102,6 +102,7 @@ namespace Cobalt
 				sData->MaterialDataStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxMaterialCount * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 			}
 
+			sData->DrawCalls.reserve(sData->sMaxObjectCount);
 			sData->Objects.reserve(sData->sMaxObjectCount);
 			sData->Materials.reserve(sData->sMaxMaterialCount);
 		}
@@ -157,23 +158,22 @@ namespace Cobalt
 		}
 	}
 
-	void Renderer::UploadMaterial(AssetHandle assetHandle, const Material& material)
+	void Renderer::UploadMaterial(Material& material)
 	{
 		CO_PROFILE_FN();
 
-		if (sData->AssetMaterialHandleMap.contains(assetHandle))
-		{
-			// Modify the material
-
-			MaterialHandle materialHandle = sData->AssetMaterialHandleMap.at(assetHandle);
-			sData->Materials[materialHandle] = material.GetMaterialData();
-		}
-		else
+		if (material.mMaterialHandle == CO_INVALID_MATERIAL_HANDLE)
 		{
 			// Insert the material
 
 			sData->Materials.push_back(material.GetMaterialData());
-			sData->AssetMaterialHandleMap[assetHandle] = sData->Materials.size() - 1;
+			material.mMaterialHandle = sData->Materials.size() - 1;
+		}
+		else
+		{
+			// Modify the material
+
+			sData->Materials[material.mMaterialHandle] = material.GetMaterialData();
 		}
 
 		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
@@ -183,70 +183,6 @@ namespace Cobalt
 			sData->MaterialDataStorageBuffers[i]->CopyData(sData->Materials.data(), sData->Materials.size() * sizeof(MaterialData));
 		}
 	}
-
-#if 0
-	TextureHandle Renderer::CreateTexture(const TextureInfo& textureInfo)
-	{
-		CO_PROFILE_FN();
-
-		TextureHandle textureHandle = sData->Textures.size();
-		sData->Textures.push_back(std::make_unique<Texture>(textureInfo));
-
-		return textureHandle;
-	}
-
-	Texture& Renderer::GetTexture(TextureHandle textureHandle)
-	{
-		CO_PROFILE_FN();
-
-		return *sData->Textures[textureHandle];
-	}
-#endif
-
-#if 0
-	std::unique_ptr<Material> CreateMaterial(const MaterialData& materialData)
-	{
-		CO_PROFILE_FN();
-
-		size_t materialHash = std::hash<MaterialData>{}(materialData);
-
-		if (sData->MaterialHandleMap.contains(materialHash))
-		{
-			MaterialHandle materialHandle = sData->MaterialHandleMap.at(materialHash);
-			return sData->MaterialPtrs[materialHandle];
-		}
-
-		MaterialHandle materialHandle = sData->Materials.size();
-
-		sData->Materials.push_back(materialData);
-
-		//std::shared_ptr<Material> material = std::make_shared<Material>(materialHandle, &sData->Materials[materialHandle]);
-
-		sData->MaterialPtrs.push_back(material);
-		sData->MaterialHandleMap[materialHash] = materialHandle;
-
-		for (uint32_t i = 0; i < GraphicsContext::Get().GetFrameCount(); i++)
-		{
-			// Copy material data to ssbo
-
-			sData->MaterialDataStorageBuffers[i]->CopyData(sData->Materials.data(), sData->Materials.size() * sizeof(MaterialData));
-
-			// Update descriptor bindings
-
-			VulkanDescriptorSet* globalDescriptorSet = material->GetGlobalDescriptorSet(i);
-			globalDescriptorSet->SetBufferBinding(sData->SceneDataUniformBuffers[i].get(), 0);
-			globalDescriptorSet->SetBufferBinding(sData->ObjectStorageBuffers[i].get(), 1);
-			globalDescriptorSet->SetBufferBinding(sData->MaterialDataStorageBuffers[i].get(), 2);
-
-			for (uint32_t j = 0; j < sData->Textures.size(); j++)
-				globalDescriptorSet->SetImageBinding(sData->Textures[j].get(), 3, j);
-
-			globalDescriptorSet->Update();
-		}
-
-		return material;
-	}
-#endif
 
 	void Renderer::BeginScene(const SceneData& scene)
 	{
@@ -330,7 +266,6 @@ namespace Cobalt
 			{
 				lastPipeline = pipeline.GetPipeline();
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
-				//batch.Material->GetGlobalDescriptorSet(frameIndex)->Bind(commandBuffer);
 				pipeline.GetDescriptorSet(frameIndex)->Bind(commandBuffer);
 			}
 
@@ -344,7 +279,7 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 		
-		for (const MeshSurface& surface : mesh->GetSurfaces())
+		/*for (const MeshSurface& surface : mesh->GetSurfaces())
 		{
 			DrawCall draw;
 			draw.IndexBuffer = mesh->GetIndexBuffer();
@@ -353,12 +288,21 @@ namespace Cobalt
 			draw.Material    = AssetManager::GetMaterial(surface.MaterialAssetHandle);
 
 			sData->DrawCalls.push_back(draw);
-		}
+		}*/
+
+		DrawCall draw;
+		draw.IndexBuffer = mesh->GetIndexBuffer();
+		draw.FirstIndex  = 0;
+		draw.IndexCount  = mesh->GetIndices().size();
+		draw.Material    = mesh->GetMaterial();
+
+		sData->DrawCalls.push_back(draw);
 
 		ObjectData object;
 		object.Transform       = transform.GetTransform();
 		object.NormalMatrix    = glm::transpose(glm::inverse(object.Transform));
 		object.VertexBufferRef = mesh->GetVertexBufferReference();
+		object.MaterialHandle  = mesh->GetMaterial()->mMaterialHandle;
 
 		sData->Objects.push_back(object);
 	}
@@ -433,11 +377,6 @@ namespace Cobalt
 			descriptorSets[i]->SetBufferBinding(*sData->ObjectStorageBuffers[i], sData->sDescriptorSetObjectBinding);
 			descriptorSets[i]->SetBufferBinding(*sData->MaterialDataStorageBuffers[i], sData->sDescriptorSetMaterialBinding);
 
-			// Image bindings are set in the `UploadTexture` method.
-
-			//for (uint32_t j = 0; j < sData->Textures.size(); j++)
-			//	descriptorSets[i]->SetImageBinding(sData->Textures[j].get(), 3, j);
-
 			descriptorSets[i]->Update();
 		}
 
@@ -496,7 +435,6 @@ namespace Cobalt
 
 			if (sameIndexBuffer && samePipeline)
 			{
-				//lastBatch.IndexCount += currDraw.IndexCount;
 				lastBatch.InstanceCount++;
 			}
 			else

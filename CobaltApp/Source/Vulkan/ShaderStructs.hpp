@@ -45,6 +45,8 @@ namespace Cobalt
 		uint32_t PointLightCount;
 	};
 
+#define CO_INVALID_MATERIAL_HANDLE -1
+
 	using TextureHandle = uint32_t;
 	using MaterialHandle = uint32_t;
 
@@ -73,7 +75,8 @@ namespace Cobalt
 		glm::mat4 Transform = glm::mat4(1.0f);
 		glm::mat4 NormalMatrix = glm::mat4(1.0f);
 		VkDeviceAddress VertexBufferRef = 0;
-		float __padding[2]{};
+		MaterialHandle MaterialHandle;
+		float __padding[1]{};
 	};
 
 	static_assert(sizeof(ObjectData) == 144);

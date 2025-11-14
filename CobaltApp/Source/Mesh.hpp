@@ -18,23 +18,22 @@ namespace Cobalt
 		glm::vec3 Normal;
 		float TexCoordV;
 
-		uint32_t MaterialHandle;
+		//uint32_t MaterialHandle;
 	};
 
-	static_assert(sizeof(MeshVertex) == 36);
-
-	struct MeshSurface
+	/*struct MeshSurface
 	{
 		uint32_t FirstIndex = 0;
 		uint32_t IndexCount = 0;
 		AssetHandle MaterialAssetHandle = CO_INVALID_ASSET_HANDLE;
-	};
+	};*/
 
 	struct MeshInfo
 	{
-		const std::vector<MeshVertex>&  Vertices;
-		const std::vector<uint32_t>&    Indices;
-		const std::vector<MeshSurface>& Surfaces;
+		const std::vector<MeshVertex>& Vertices;
+		const std::vector<uint32_t>&   Indices;
+
+		Material* MaterialRef; // non-owning pointer
 	};
 
 	class Mesh
@@ -46,7 +45,9 @@ namespace Cobalt
 	public:
 		const std::vector<MeshVertex>& GetVertices()  const { return mVertices; }
 		const std::vector<uint32_t>&   GetIndices()   const { return mIndices;  }
-		const std::vector<MeshSurface>& GetSurfaces() const { return mSurfaces; }
+
+		Material* GetMaterial() const { return mMaterialRef; }
+		//const std::vector<MeshSurface>& GetSurfaces() const { return mSurfaces; }
 
 		VulkanBuffer* GetVertexBuffer() const { return mVertexBuffer.get(); }
 		VulkanBuffer* GetIndexBuffer()  const { return mIndexBuffer.get();  }
@@ -56,7 +57,8 @@ namespace Cobalt
 	private:
 		std::vector<MeshVertex> mVertices;
 		std::vector<uint32_t> mIndices;
-		std::vector<MeshSurface> mSurfaces;
+		//std::vector<MeshSurface> mSurfaces;
+		Material* mMaterialRef;
 
 		std::unique_ptr<VulkanBuffer> mVertexBuffer;
 		std::unique_ptr<VulkanBuffer> mIndexBuffer;

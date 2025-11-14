@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <stdint.h>
 
 #define CO_INVALID_ASSET_HANDLE 0
 #define CO_DEFAULT_TEXTURE_ASSET 1

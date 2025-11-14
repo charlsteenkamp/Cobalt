@@ -115,14 +115,12 @@ namespace Cobalt
 
 		if (mSphereMaterialChanged)
 		{
-			Material* defaultMaterial = AssetManager::GetMaterial(CO_DEFAULT_MATERIAL_ASSET);
-
-			MaterialData& materialData = defaultMaterial->GetMaterialData();
+			MaterialData& materialData   = mPBRMaterial->GetMaterialData();
 			materialData.BaseColorFactor = mSphereBaseColor;
 			materialData.RoughnessFactor = mSphereRoughnessFactor;
-			materialData.MetallicFactor = mSphereMetallicFactor;
+			materialData.MetallicFactor  = mSphereMetallicFactor;
 
-			Renderer::UploadMaterial(CO_DEFAULT_MATERIAL_ASSET, *defaultMaterial);
+			Renderer::UploadMaterial(*mPBRMaterial);
 
 			mSphereMaterialChanged = false;
 		}
@@ -136,8 +134,6 @@ namespace Cobalt
 		mScene.Camera.ViewProjectionMatrix = mCameraController.GetViewProjectionMatrix();
 
 		mScene.DirectionalLight.Direction = glm::normalize(mScene.DirectionalLight.Direction);
-
-
 
 		Transform cubeTransform;
 		cubeTransform.Scale = { 20.0f, 0.2f, 20.0f };

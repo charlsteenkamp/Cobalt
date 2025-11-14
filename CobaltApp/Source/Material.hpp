@@ -5,6 +5,8 @@
 namespace Cobalt
 {
 
+	class Renderer;
+
 	struct MaterialInfo
 	{
 		const MaterialData& MaterialData;
@@ -23,9 +25,15 @@ namespace Cobalt
 		      MaterialData& GetMaterialData()       { return mMaterialData; }
 		const MaterialData& GetMaterialData() const { return mMaterialData; }
 
+		MaterialHandle GetMaterialHandle() const { return mMaterialHandle; }
+
 	private:
 		MaterialData mMaterialData;
 		const Pipeline& mPipeline;
+
+		MaterialHandle mMaterialHandle = CO_INVALID_MATERIAL_HANDLE;
+
+		friend class Renderer;
 	};
 
 }

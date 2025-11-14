@@ -71,7 +71,7 @@ namespace Cobalt
 	private:
 		const Window& mWindow;
 
-		uint32_t mFrameCount = 2;
+		uint32_t mFrameCount = 3;
 		uint32_t mFrameIndex = 0;
 		std::vector<FrameData> mFrames;
 

@@ -39,8 +39,6 @@ namespace Cobalt
 		bool mSphereMaterialChanged = false;
 
 		uint32_t mSphereGridSize = 10;
-
-
 	};
 
 }

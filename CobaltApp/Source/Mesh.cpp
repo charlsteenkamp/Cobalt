@@ -7,7 +7,7 @@ namespace Cobalt
 {
 
 	Mesh::Mesh(const MeshInfo& meshInfo)
-		: mVertices(meshInfo.Vertices), mIndices(meshInfo.Indices), mSurfaces(meshInfo.Surfaces)
+		: mVertices(meshInfo.Vertices), mIndices(meshInfo.Indices), mMaterialRef(meshInfo.MaterialRef)
 	{
 		CO_PROFILE_FN();
 

@@ -65,17 +65,12 @@ namespace Cobalt
 		static VkRenderPass GetMainRenderPass() { return sData->MainRenderPass; }
 		static const Pipeline& GetPBRPipeline() { return *sData->PBRPipeline; }
 
-		static MaterialHandle GetMaterialHandleFromAssetHandle(AssetHandle materialAssetHandle)
-		{
-			return sData->AssetMaterialHandleMap.at(materialAssetHandle);
-		}
-
 	public:
 		// Called by Assetmanager
 		static void UploadTexture(const Texture& texture, const Pipeline& pipeline);
 
-		// Called by AssetManager whenever a new material is registered, or when an existing material's data changes
-		static void UploadMaterial(AssetHandle assetHandle, const Material& material);
+		// Called by AssetManager whenever a new material is registered, or somewhere else when an existing material's data changes
+		static void UploadMaterial(Material& material);
 
 	public:
 		static void BeginScene(const SceneData& scene);
@@ -125,7 +120,7 @@ namespace Cobalt
 			static constexpr uint32_t sMaxMaterialCount = 100;
 			static constexpr uint32_t sMaxObjectCount   = 10000;
 			
-			std::unordered_map<AssetHandle, MaterialHandle> AssetMaterialHandleMap;
+			//std::unordered_map<AssetHandle, MaterialHandle> AssetMaterialHandleMap;
 
 			std::vector<DrawCall> DrawCalls;
 		};

@@ -190,27 +190,32 @@ namespace Cobalt
 			vertices.clear();
 			indices.clear();
 
-			std::vector<MeshSurface> surfaces;
-			surfaces.reserve(mesh.primitives.size());
+			//std::vector<MeshSurface> surfaces;
+			//surfaces.reserve(mesh.primitives.size());
+
+			AssetHandle materialAssetHandle = CO_DEFAULT_MATERIAL_ASSET;
 
 			for (const fastgltf::Primitive& primitive : mesh.primitives)
 			{
 				uint32_t firstVertexIndex  = vertices.size();
 				uint32_t firstIndicesIndex = indices.size();
 
-				MeshSurface surface;
-				surface.FirstIndex = firstIndicesIndex;
-				surface.IndexCount = (uint32_t)gltf.accessors[primitive.indicesAccessor.value()].count;
-				surface.MaterialAssetHandle = CO_DEFAULT_MATERIAL_ASSET;
+				//MeshSurface surface;
+				//surface.FirstIndex = firstIndicesIndex;
+				//surface.IndexCount = (uint32_t)gltf.accessors[primitive.indicesAccessor.value()].count;
+				//surface.MaterialAssetHandle = CO_DEFAULT_MATERIAL_ASSET;
 
 				// Set surface material
 
 				if (primitive.materialIndex.has_value())
-					surface.MaterialAssetHandle = mMaterialAssetHandles[primitive.materialIndex.value()];
+					materialAssetHandle = mMaterialAssetHandles[primitive.materialIndex.value()];
 
-				surfaces.push_back(surface);
+				//if (primitive.materialIndex.has_value())
+					//surface.MaterialAssetHandle = mMaterialAssetHandles[primitive.materialIndex.value()];
 
-				MaterialHandle materialHandle = Renderer::GetMaterialHandleFromAssetHandle(surface.MaterialAssetHandle);
+				//surfaces.push_back(surface);
+
+				//MaterialHandle materialHandle = Renderer::GetMaterialHandleFromAssetHandle(surface.MaterialAssetHandle);
 
 				// Load indices
 
@@ -229,10 +234,10 @@ namespace Cobalt
 				vertices.resize(vertices.size() + verticesAccessor.count);
 
 				fastgltf::iterateAccessorWithIndex<fastgltf::math::nvec3>(gltf, verticesAccessor,
-					[&vertices, firstVertexIndex, materialHandle](fastgltf::math::nvec3 position, size_t index)
+					[&vertices, firstVertexIndex](fastgltf::math::nvec3 position, size_t index)
 					{
 						vertices[firstVertexIndex + index].Position       = FastGLTFVec3ToGLMVec3(position);
-						vertices[firstVertexIndex + index].MaterialHandle = materialHandle;
+						//vertices[firstVertexIndex + index].MaterialHandle = materialHandle;
 					}
 				);
 
@@ -265,7 +270,7 @@ namespace Cobalt
 			MeshInfo meshInfo = {
 				.Vertices = vertices,
 				.Indices  = indices,
-				.Surfaces = surfaces
+				.MaterialRef = AssetManager::GetMaterial(materialAssetHandle)
 			};
 
 			AssetHandle meshAssetHandle = AssetManager::RegisterMesh(meshInfo);

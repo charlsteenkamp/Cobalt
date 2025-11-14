@@ -29,12 +29,21 @@ public struct Material
 	public UnpackedMaterial Unpack(in Sampler2D baseColorMap, in Sampler2D normalMap, in Sampler2D occlusionRoughnessMetallicMap, in Sampler2D emissiveMap, in float2 uv)
 	{
 		UnpackedMaterial unpackedMaterial;
+
 		unpackedMaterial.BaseColor = BaseColorFactor   * baseColorMap.Sample(uv);
 		unpackedMaterial.Normal    = NormalScale       * normalMap.Sample(uv).xyz;
 		unpackedMaterial.Occlusion = OcclusionStrength * occlusionRoughnessMetallicMap.Sample(uv).x;
 		unpackedMaterial.Roughness = RoughnessFactor   * occlusionRoughnessMetallicMap.Sample(uv).r;
 		unpackedMaterial.Metallic  = MetallicFactor    * occlusionRoughnessMetallicMap.Sample(uv).b;
 		unpackedMaterial.Emissive  = EmissiveFactor    * emissiveMap.Sample(uv).xyz;
+
+		/*float4 sampled = baseColorMap.Sample(uv);
+		unpackedMaterial.BaseColor = BaseColorFactor * sampled;
+		unpackedMaterial.Normal = NormalScale * sampled.xyz;
+		unpackedMaterial.Occlusion = OcclusionStrength * sampled.x;
+		unpackedMaterial.Roughness = RoughnessFactor * sampled.y;
+		unpackedMaterial.Metallic = MetallicFactor * sampled.z;
+		unpackedMaterial.Emissive = EmissiveFactor * sampled.xyz;*/
 
 		return unpackedMaterial;
 	}
