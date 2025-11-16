@@ -20,9 +20,7 @@ namespace Cobalt
 		mScene.Camera.ViewProjectionMatrix = mCameraController.GetViewProjectionMatrix();
 
 		mScene.DirectionalLight.Direction = glm::vec3(0.0f, -1.0f, 0.0f);
-		mScene.DirectionalLight.Ambient = glm::vec3(0.2f);
-		mScene.DirectionalLight.Diffuse = glm::vec3(0.5f);
-		mScene.DirectionalLight.Specular = glm::vec3(1.0f);
+		mScene.DirectionalLight.Intensity = glm::vec3(1.0f);
 	}
 
 	SponzaModule::~SponzaModule()
@@ -117,9 +115,7 @@ namespace Cobalt
 				//	RenderPointLight(std::format("Point Light {}", i).c_str(), mScene.PointLights[i]);
 
 				ImGui::DragFloat3("Directional Light Direction", &mScene.DirectionalLight.Direction.x, 0.1f, -10.0f, 10.0f);
-				ImGui::ColorEdit3("Directional Light Ambient", &mScene.DirectionalLight.Ambient.r);
-				ImGui::ColorEdit3("Directional Light Diffuse", &mScene.DirectionalLight.Diffuse.r);
-				ImGui::ColorEdit3("Directional Light Specular", &mScene.DirectionalLight.Specular.r);
+				ImGui::ColorEdit3("Directional Light Intensity", &mScene.DirectionalLight.Intensity.x);
 
 				//ImGui::DragInt("Render Mesh Count", &mRenderMeshCount, 0, mSponzaModel->GetMeshes().size());
 

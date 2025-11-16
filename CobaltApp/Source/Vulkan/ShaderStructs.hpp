@@ -23,10 +23,7 @@ namespace Cobalt
 	struct DirectionalLightData
 	{
 		alignas(16) glm::vec3 Direction;
-
-		alignas(16) glm::vec3 Ambient;
-		alignas(16) glm::vec3 Diffuse;
-		alignas(16) glm::vec3 Specular;
+		alignas(16) glm::vec3 Intensity;
 	};
 
 	struct PointLightData
@@ -48,8 +45,8 @@ namespace Cobalt
 	{
 		CameraData Camera;
 		DirectionalLightData DirectionalLight;
-		PointLightData PointLights[CO_MAX_POINT_LIGHT_COUNT];
-		uint32_t PointLightCount;
+		//PointLightData PointLights[CO_MAX_POINT_LIGHT_COUNT];
+		//uint32_t PointLightCount;
 	};
 
 

@@ -27,7 +27,8 @@ project "CobaltApp"
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.fastgltf}",
-		"%{IncludeDir.Optick}"
+		"%{IncludeDir.Optick}",
+		"%{IncludeDir.slang}"
 	}
 
 	postbuildcommands

@@ -1,6 +1,8 @@
 module Material;
 
-public struct UnpackedMaterial
+import BRDF;
+
+public struct Material
 {
 	public float4 BaseColor;
 	public float3 Normal;
@@ -13,9 +15,15 @@ public struct UnpackedMaterial
 	{
 		return float3(0.03) * BaseColor.xyz;
 	}
+
+	public CookTorranceBRDF PrepareBRDF()
+	{
+		CookTorranceBRDF brdf = CookTorranceBRDF(BaseColor.xyz, Roughness, Metallic);
+		return brdf;
+	}
 };
 
-public struct Material
+public struct PackedMaterial
 {
 	public uint   BaseColorMapHandle;
 	public uint   NormalMapHandle;
@@ -31,9 +39,9 @@ public struct Material
 
 	public float3 EmissiveFactor;
 
-	public UnpackedMaterial Unpack(in Sampler2D baseColorMap, in Sampler2D normalMap, in Sampler2D occlusionRoughnessMetallicMap, in Sampler2D emissiveMap, in float2 uv)
+	public Material Unpack(in Sampler2D baseColorMap, in Sampler2D normalMap, in Sampler2D occlusionRoughnessMetallicMap, in Sampler2D emissiveMap, in float2 uv)
 	{
-		UnpackedMaterial unpackedMaterial;
+		Material unpackedMaterial;
 
 		unpackedMaterial.BaseColor = BaseColorFactor   * baseColorMap.Sample(uv);
 		unpackedMaterial.Normal    = NormalScale       * normalMap.Sample(uv).xyz;
@@ -41,14 +49,6 @@ public struct Material
 		unpackedMaterial.Roughness = RoughnessFactor   * occlusionRoughnessMetallicMap.Sample(uv).r;
 		unpackedMaterial.Metallic  = MetallicFactor    * occlusionRoughnessMetallicMap.Sample(uv).b;
 		unpackedMaterial.Emissive  = EmissiveFactor    * emissiveMap.Sample(uv).xyz;
-
-		/*float4 sampled = baseColorMap.Sample(uv);
-		unpackedMaterial.BaseColor = BaseColorFactor * sampled;
-		unpackedMaterial.Normal = NormalScale * sampled.xyz;
-		unpackedMaterial.Occlusion = OcclusionStrength * sampled.x;
-		unpackedMaterial.Roughness = RoughnessFactor * sampled.y;
-		unpackedMaterial.Metallic = MetallicFactor * sampled.z;
-		unpackedMaterial.Emissive = EmissiveFactor * sampled.xyz;*/
 
 		return unpackedMaterial;
 	}

@@ -18,15 +18,17 @@ IncludeDir["fastgltf"]      = "%{wks.location}/Dependencies/fastgltf/include"
 IncludeDir["simdjson"]      = "%{wks.location}/Dependencies/simdjson"
 IncludeDir["VulkanSDK"]     = "%{VULKAN_SDK}/Include"
 IncludeDir["Optick"]        = "%{wks.location}/Dependencies/Optick/src"
+IncludeDir["slang"]         = "%{wks.location}/Dependencies/slang/include"
 
 LibraryDir = {}
+LibraryDir["slang"]     = "%{wks.location}/Dependencies/slang/lib"
 LibraryDir["VulkanSDK"] = "%{VULKAN_SDK}/Lib"
-LibraryDir["Optick"] = "%{wks.location}/Dependencies/Optick/bin/vs2022/x64/Release"
+LibraryDir["Optick"]    = "%{wks.location}/Dependencies/Optick/bin/vs2022/x64/Release"
 
 Library = {}
+Library["slang"]  = "%{LibraryDir.slang}/slang.lib"
 Library["Vulkan"] = "%{LibraryDir.VulkanSDK}/vulkan-1.lib"
 Library["Optick"] = "%{LibraryDir.Optick}/OptickCore.lib"
-Library["slang"] = "%{LibraryDir.VulkanSDK}/slang.lib"
 
 workspace "Cobalt"
 	architecture "x64"

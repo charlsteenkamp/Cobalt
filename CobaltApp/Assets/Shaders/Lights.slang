@@ -1,26 +1,33 @@
 module Lights;
 
 import Material;
-import PBRShading;
+import BRDF;
 
-public struct DirectionalLight
+public interface ILightEnv
 {
-	public float3 Direction;
+	float3 Illuminate<BRDF: IBRDF>(in BRDF brdf, in float3 normal, in float3 viewDir);
+};
 
-	public float3 Ambient;
-	public float3 Diffuse;
-	public float3 Specular;
+public struct DirectionalLight : ILightEnv
+{
+	float3 Direction;
+	float3 Intensity;
 
-	public float3 CalculateLuminance(in UnpackedMaterial material, in float3 normal, in float3 viewDir)
+	public float3 Illuminate<BRDF: IBRDF>(in BRDF brdf, in float3 normal, in float3 viewDir)
+	{
+		return Intensity * brdf.Evaluate(viewDir, -Direction, normal);		
+	}
+
+	/*public float3 CalculateLuminance(in UnpackedMaterial material, in float3 normal, in float3 viewDir)
 	{
 		float3 lightDir = -Direction;
 		float nDotL = saturate(dot(normal, lightDir));
 
 		return BRDF(normal, viewDir, lightDir, material) * nDotL;
-	}
+	}*/
 };
 
-public struct PointLight
+/*public struct PointLight
 {
 	public float3 Position;
 
@@ -36,4 +43,4 @@ public struct PointLight
 	{
 
 	}
-};
+};*/

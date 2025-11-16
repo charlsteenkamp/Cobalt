@@ -22,9 +22,7 @@ namespace Cobalt
 		mScene.Camera.ViewProjectionMatrix = mCameraController.GetViewProjectionMatrix();
 
 		mScene.DirectionalLight.Direction = glm::vec3(0.0f, -1.0f, 0.0f);
-		mScene.DirectionalLight.Ambient = glm::vec3(0.2f);
-		mScene.DirectionalLight.Diffuse = glm::vec3(0.5f);
-		mScene.DirectionalLight.Specular = glm::vec3(1.0f);
+		mScene.DirectionalLight.Intensity = glm::vec3(1.0f);
 	}
 
 	SandboxModule::~SandboxModule()

@@ -1,4 +1,5 @@
 import Material;
+import BRDF;
 import Lights;
 
 struct Camera
@@ -15,8 +16,8 @@ struct Scene
 
 	DirectionalLight DirectionalLight;
 
-	PointLight PointLights[MAX_POINT_LIGHT_COUNT];
-	uint PointLightCount;
+	//PointLight PointLights[MAX_POINT_LIGHT_COUNT];
+	//uint PointLightCount;
 };
 
 struct MeshVertex
@@ -37,14 +38,18 @@ struct Object
 	uint MaterialHandle;
 };
 
-struct VSOutput
+struct CoarseVertex
 {
-	float4 Position: SV_POSITION;
-	
 	float3 Normal;
 	float2 UV;
 	float3 FragPosition;
 	nointerpolation uint MaterialHandle;
+};
+
+struct VSOutput
+{
+	float4       Position:     SV_Position;
+	CoarseVertex CoarseVertex: CoarseVertex;
 };
 
 ConstantBuffer<Scene> gScene;
@@ -59,35 +64,38 @@ VSOutput VSMain(uniform StructuredBuffer<Object> objects, uint instanceID: SV_In
 	float4 positionWorld = mul(object.Transform, positionLocal);
 
 	VSOutput output;
-	output.Position       = mul(gScene.Camera.ViewProjection, positionWorld);
-	output.Normal         = mul(float3x3(object.NormalMatrix), vertex.Normal);
-	output.UV             = float2(vertex.TexCoordU, vertex.TexCoordV);
-	output.FragPosition   = positionWorld.xyz;
-	output.MaterialHandle = object.MaterialHandle;
+	output.Position = mul(gScene.Camera.ViewProjection, positionWorld);
+
+	output.CoarseVertex.Normal         = mul(float3x3(object.NormalMatrix), vertex.Normal);
+	output.CoarseVertex.UV             = float2(vertex.TexCoordU, vertex.TexCoordV);
+	output.CoarseVertex.FragPosition   = positionWorld.xyz;
+	output.CoarseVertex.MaterialHandle = object.MaterialHandle;
 
 	return output;
 }
 
 [shader("fragment")]
-float4 FSMain(VSOutput input, uniform StructuredBuffer<Material> materials, uniform Sampler2D textures[]) : SV_Target0
+float4 FSMain(CoarseVertex coarseVertex: CoarseVertex, uniform StructuredBuffer<PackedMaterial> materials, uniform Sampler2D textures[]) : SV_Target
 {
-	Material material = materials[input.MaterialHandle];
+	PackedMaterial packedMaterial = materials[coarseVertex.MaterialHandle];
 
-	UnpackedMaterial unpackedMaterial = material.Unpack(
-		textures[material.BaseColorMapHandle],
-		textures[material.NormalMapHandle],
-		textures[material.OcclusionRoughnessMetallicMapHandle],
-		textures[material.EmissiveMap],
-		input.UV
+	Material material = packedMaterial.Unpack(
+		textures[packedMaterial.BaseColorMapHandle],
+		textures[packedMaterial.NormalMapHandle],
+		textures[packedMaterial.OcclusionRoughnessMetallicMapHandle],
+		textures[packedMaterial.EmissiveMap],
+		coarseVertex.UV
     );
 
+	CookTorranceBRDF brdf = material.PrepareBRDF();
+
 	float3 luminance = 0.0;
-	float3 normal   = normalize(input.Normal);
-	float3 viewDir  = normalize(gScene.Camera.Translation - input.FragPosition);
+	float3 normal   = normalize(coarseVertex.Normal);
+	float3 viewDir  = normalize(gScene.Camera.Translation - coarseVertex.FragPosition);
 
-	luminance += gScene.DirectionalLight.CalculateLuminance(unpackedMaterial, normal, viewDir);
+	luminance += gScene.DirectionalLight.Illuminate(brdf, normal, viewDir);
 
-	float3 color = luminance + unpackedMaterial.CalculateAmbient();
+	float3 color = luminance + material.CalculateAmbient();
 
 	color = color / (color + float3(1.0)); // HDR tonemapping
 	color = pow(color, float3(1.0 / 2.2)); // Gamma correction
