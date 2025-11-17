@@ -1,5 +1,5 @@
 #include "copch.hpp"
-#include "Camera.hpp"
+#include "CameraController.hpp"
 #include "Application.hpp"
 
 #include <algorithm>

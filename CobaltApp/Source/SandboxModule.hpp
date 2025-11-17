@@ -1,7 +1,7 @@
 #pragma once
 #include "Module.hpp"
 #include "Vulkan/Renderer.hpp"
-#include "Camera.hpp"
+#include "CameraController.hpp"
 #include "Model.hpp"
 
 namespace Cobalt
