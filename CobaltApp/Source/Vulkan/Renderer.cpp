@@ -110,7 +110,7 @@ namespace Cobalt
 		// Shader compilation & pipeline creation
 
 		sData->Shaders = std::make_unique<ShaderLibrary>("CobaltApp/Assets/Shaders");
-		sData->PBRShaderHandle = sData->Shaders->RegisterShader("PBRShader.slang");
+		sData->PBRShaderHandle = sData->Shaders->RegisterShader("Forward/PBRShader.slang");
 
 		PipelineInfo mainPBRPipelineInfo = {
 			.Shader = *sData->Shaders->GetShader(sData->PBRShaderHandle),

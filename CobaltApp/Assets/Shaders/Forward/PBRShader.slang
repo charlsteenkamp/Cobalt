@@ -1,42 +1,7 @@
-import Material;
-import BRDF;
-import Lights;
-
-struct Camera
-{
-	float4x4 ViewProjection;
-	float3 Translation;
-};
-
-#define MAX_POINT_LIGHT_COUNT 16
-
-struct Scene
-{
-	Camera Camera;
-
-	DirectionalLight DirectionalLight;
-
-	//PointLight PointLights[MAX_POINT_LIGHT_COUNT];
-	//uint PointLightCount;
-};
-
-struct MeshVertex
-{
-	float3 Position;
-	float  TexCoordU;
-	float3 Normal;
-	float  TexCoordV;
-};
-
-struct Object
-{
-	float4x4 Transform;
-	float4x4 NormalMatrix;
-
-	ConstBufferPointer<MeshVertex> Vertices;
-
-	uint MaterialHandle;
-};
+import Common.Common;
+import Common.Material;
+import Common.BRDF;
+import Common.Lights;
 
 struct CoarseVertex
 {
