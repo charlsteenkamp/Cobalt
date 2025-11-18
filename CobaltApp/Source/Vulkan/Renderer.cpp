@@ -104,39 +104,44 @@ namespace Cobalt
 				.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
 			};
 
-			VkAttachmentDescription attachments[5] = { gBufferAttachment, gBufferAttachment, gBufferAttachment, gBufferAttachment, depthAttachment };
+			VkAttachmentDescription attachments[6] = { gBufferAttachment, gBufferAttachment, gBufferAttachment, gBufferAttachment, gBufferAttachment, depthAttachment };
 
-			VkAttachmentReference baseColorAttachmentRef = {
+			VkAttachmentReference positionAttachmentRef = {
 				.attachment = 0,
 				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 			};
 
-			VkAttachmentReference normalAttachmentRef = {
+			VkAttachmentReference baseColorAttachmentRef = {
 				.attachment = 1,
 				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 			};
 
-			VkAttachmentReference occlusionRoughnessMetallicAttachmentRef = {
+			VkAttachmentReference normalAttachmentRef = {
 				.attachment = 2,
 				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 			};
 
-			VkAttachmentReference emissiveAttachmentRef = {
+			VkAttachmentReference occlusionRoughnessMetallicAttachmentRef = {
 				.attachment = 3,
 				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 			};
 
-			VkAttachmentReference depthAttachmentRef = {
+			VkAttachmentReference emissiveAttachmentRef = {
 				.attachment = 4,
+				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			};
+
+			VkAttachmentReference depthAttachmentRef = {
+				.attachment = 5,
 				.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
 			};
 
-			VkAttachmentReference gBufferAttachmentRefs[4] = { baseColorAttachmentRef, normalAttachmentRef, occlusionRoughnessMetallicAttachmentRef, emissiveAttachmentRef };
-			VkAttachmentReference attachmentRefs[5] = { baseColorAttachmentRef, normalAttachmentRef, occlusionRoughnessMetallicAttachmentRef, emissiveAttachmentRef, depthAttachmentRef };
+			VkAttachmentReference gBufferAttachmentRefs[5] = { positionAttachmentRef, baseColorAttachmentRef, normalAttachmentRef, occlusionRoughnessMetallicAttachmentRef, emissiveAttachmentRef };
+			VkAttachmentReference attachmentRefs[6] = { positionAttachmentRef, baseColorAttachmentRef, normalAttachmentRef, occlusionRoughnessMetallicAttachmentRef, emissiveAttachmentRef, depthAttachmentRef };
 
 			VkSubpassDescription geometrySubpassDesc = {
 				.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-				.colorAttachmentCount = 4,
+				.colorAttachmentCount = 5,
 				.pColorAttachments = gBufferAttachmentRefs,
 				.pDepthStencilAttachment = &depthAttachmentRef
 			};
@@ -148,7 +153,6 @@ namespace Cobalt
 				.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 				.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT,
 				.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-//				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
 			};
 
 			VkSubpassDependency geometryWriteSubpassDep = {
@@ -158,7 +162,6 @@ namespace Cobalt
 				.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 				.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 				.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
-//				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
 			};
 
 			VkSubpassDependency depthSubpassDep = {
@@ -168,14 +171,13 @@ namespace Cobalt
 				.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
 				.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 				.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-//				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
 			};
 
 			VkSubpassDependency geometrySubpassDependencies[3] = { geometryReadSubpassDep, geometryWriteSubpassDep, depthSubpassDep };
 
 			VkRenderPassCreateInfo geometryRenderPassCreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-				.attachmentCount = 5,
+				.attachmentCount = 6,
 				.pAttachments = attachments,
 				.subpassCount = 1,
 				.pSubpasses = &geometrySubpassDesc,
@@ -233,6 +235,7 @@ namespace Cobalt
 			uint32_t width  = GraphicsContext::Get().GetSwapchain().GetExtent().width;
 			uint32_t height = GraphicsContext::Get().GetSwapchain().GetExtent().height;
 
+			sData->PositionTexture                   = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
 			sData->BaseColorTexture                  = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
 			sData->NormalTexture                     = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
 			sData->OcclusionRoughnessMetallicTexture = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
@@ -286,9 +289,11 @@ namespace Cobalt
 		PipelineInfo geometryPassPipelineInfo = {
 			.Shader = *sData->Shaders->GetShader(sData->GeometryPassShaderHandle),
 			.PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			.CullMode = VK_CULL_MODE_NONE,
+			.FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 			.EnableDepthTesting = true,
 			.ColorAttachments = {
-				{ false }, { false }, { false }, { false }
+				{ false }, { false }, { false }, { false }, { false }
 			}
 		};
 
@@ -308,7 +313,9 @@ namespace Cobalt
 		PipelineInfo lightingPassPipelineInfo = {
 			.Shader = *sData->Shaders->GetShader(sData->LightingPassShaderHandle),
 			.PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-			.EnableDepthTesting = false,
+			.CullMode = VK_CULL_MODE_NONE,
+			.FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+			.EnableDepthTesting = true,
 			.ColorAttachments = {
 				{ true }
 			}
@@ -321,10 +328,11 @@ namespace Cobalt
 		{
 			VulkanDescriptorSet* descriptorSet = sData->LightingPassPipeline->GetDescriptorSet(i);
 			descriptorSet->SetBufferBinding(*sData->SceneDataUniformBuffers[i], 0);
-			descriptorSet->SetImageBinding(*sData->BaseColorTexture, 1);
-			descriptorSet->SetImageBinding(*sData->NormalTexture, 2);
-			descriptorSet->SetImageBinding(*sData->OcclusionRoughnessMetallicTexture, 3);
-			descriptorSet->SetImageBinding(*sData->EmissiveTexture, 4);
+			descriptorSet->SetImageBinding(*sData->PositionTexture, 1);
+			descriptorSet->SetImageBinding(*sData->BaseColorTexture, 2);
+			descriptorSet->SetImageBinding(*sData->NormalTexture, 3);
+			descriptorSet->SetImageBinding(*sData->OcclusionRoughnessMetallicTexture, 4);
+			descriptorSet->SetImageBinding(*sData->EmissiveTexture, 5);
 			descriptorSet->Update();
 		}
 	}
@@ -444,19 +452,20 @@ namespace Cobalt
 
 		// Begin geometry pass
 
-		VkClearValue geometryPassClearValues[5] = {};
-		geometryPassClearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-		geometryPassClearValues[1].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-		geometryPassClearValues[2].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-		geometryPassClearValues[3].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-		geometryPassClearValues[4].depthStencil = {1.0f, 0};
+		VkClearValue geometryPassClearValues[6] = {};
+		geometryPassClearValues[0].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		geometryPassClearValues[1].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		geometryPassClearValues[2].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		geometryPassClearValues[3].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		geometryPassClearValues[4].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		geometryPassClearValues[5].depthStencil = {1.0f, 0};
 
 		VkRenderPassBeginInfo geometryPassBeginInfo = {
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 			.renderPass = sData->GeometryRenderPass,
 			.framebuffer = sData->GeometryPassFramebuffers[swapchain.GetBackBufferIndex()],
 			.renderArea = { .extent = swapchain.GetExtent() },
-			.clearValueCount = 5,
+			.clearValueCount = 6,
 			.pClearValues = geometryPassClearValues,
 		};
 
@@ -610,7 +619,8 @@ namespace Cobalt
 
 		for (uint32_t i = 0; i < swapchain.GetBackBufferCount(); i++)
 		{
-			VkImageView geometryPassAttachments[5] = {
+			VkImageView geometryPassAttachments[6] = {
+				sData->PositionTexture->GetImageView(),
 				sData->BaseColorTexture->GetImageView(),
 				sData->NormalTexture->GetImageView(),
 				sData->OcclusionRoughnessMetallicTexture->GetImageView(),
@@ -618,7 +628,7 @@ namespace Cobalt
 				sData->DepthTexture->GetImageView()
 			};
 
-			geometryPassFramebufferCreateInfo.attachmentCount = 5;
+			geometryPassFramebufferCreateInfo.attachmentCount = 6;
 			geometryPassFramebufferCreateInfo.pAttachments = geometryPassAttachments;
 
 			VK_CALL(vkCreateFramebuffer(GraphicsContext::Get().GetDevice(), &geometryPassFramebufferCreateInfo, nullptr, &sData->GeometryPassFramebuffers[i]));

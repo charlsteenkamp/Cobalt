@@ -200,22 +200,10 @@ namespace Cobalt
 				uint32_t firstVertexIndex  = vertices.size();
 				uint32_t firstIndicesIndex = indices.size();
 
-				//MeshSurface surface;
-				//surface.FirstIndex = firstIndicesIndex;
-				//surface.IndexCount = (uint32_t)gltf.accessors[primitive.indicesAccessor.value()].count;
-				//surface.MaterialAssetHandle = CO_DEFAULT_MATERIAL_ASSET;
-
 				// Set surface material
 
 				if (primitive.materialIndex.has_value())
 					materialAssetHandle = mMaterialAssetHandles[primitive.materialIndex.value()];
-
-				//if (primitive.materialIndex.has_value())
-					//surface.MaterialAssetHandle = mMaterialAssetHandles[primitive.materialIndex.value()];
-
-				//surfaces.push_back(surface);
-
-				//MaterialHandle materialHandle = Renderer::GetMaterialHandleFromAssetHandle(surface.MaterialAssetHandle);
 
 				// Load indices
 
@@ -252,6 +240,20 @@ namespace Cobalt
 						}
 					);
 				}
+
+				// Load tangents
+
+#if 0
+				if (auto tangents = primitive.findAttribute("TANGENT"); tangents != primitive.attributes.end())
+				{
+					fastgltf::iterateAccessorWithIndex<fastgltf::math::nvec4>(gltf, gltf.accessors[tangents->accessorIndex],
+						[&vertices, firstVertexIndex](fastgltf::math::nvec4 tangent, size_t index)
+						{
+							vertices[firstVertexIndex + index].Tangent = FastGLTFVec4ToGLMVec4(tangent);
+						}
+					);
+				}
+#endif
 
 				// Load UV coords
 

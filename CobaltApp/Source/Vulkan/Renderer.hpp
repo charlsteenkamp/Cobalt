@@ -99,7 +99,7 @@ namespace Cobalt
 			//VkRenderPass MainRenderPass;
 			VkRenderPass GeometryRenderPass, LightingRenderPass;
 
-			std::unique_ptr<Texture> BaseColorTexture, NormalTexture, OcclusionRoughnessMetallicTexture, EmissiveTexture;
+			std::unique_ptr<Texture> PositionTexture, BaseColorTexture, NormalTexture, OcclusionRoughnessMetallicTexture, EmissiveTexture;
 			std::unique_ptr<Texture> DepthTexture;
 
 			std::vector<VkFramebuffer> GeometryPassFramebuffers, LightingPassFramebuffers; // by backbuffer index

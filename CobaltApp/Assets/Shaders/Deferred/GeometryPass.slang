@@ -7,6 +7,7 @@ struct CoarseVertex
 {
 	float3 Normal;
 	float2 UV;
+	float3 FragPosition;
 	nointerpolation uint MaterialHandle;
 };
 
@@ -29,6 +30,7 @@ VSOutput VSMain(ConstantBuffer<Scene> scene, uniform StructuredBuffer<Object> ob
 	output.Position = mul(scene.Camera.ViewProjection, positionWorld);
 
 	output.CoarseVertex.Normal         = mul(float3x3(object.NormalMatrix), vertex.Normal);
+	output.CoarseVertex.FragPosition   = positionWorld.xyz;
 	output.CoarseVertex.UV             = float2(vertex.TexCoordU, vertex.TexCoordV);
 	output.CoarseVertex.MaterialHandle = object.MaterialHandle;
 
@@ -37,10 +39,11 @@ VSOutput VSMain(ConstantBuffer<Scene> scene, uniform StructuredBuffer<Object> ob
 
 struct FSOutput
 {
-	float4 BaseColor:                  SV_Target0;
-	float4 Normal:                     SV_Target1;
-	float4 OcclusionRoughnessMetallic: SV_Target2;
-	float4 Emissive:                   SV_Target3;
+	float4 Position:                   SV_Target0;
+	float4 BaseColor:                  SV_Target1;
+	float4 Normal:                     SV_Target2;
+	float4 OcclusionRoughnessMetallic: SV_Target3;
+	float4 Emissive:                   SV_Target4;
 };
 
 [shader("fragment")]
@@ -57,9 +60,9 @@ FSOutput FSMain(CoarseVertex coarseVertex: CoarseVertex, uniform StructuredBuffe
     );
 
 	FSOutput output;
+	output.Position = float4(coarseVertex.FragPosition, 1.0);
 	output.BaseColor = material.BaseColor;
-	//output.Normal = float4(material.Normal, 1.0);
-	output.Normal = float4(coarseVertex.Normal, 1.0);
+	output.Normal = float4(normalize(coarseVertex.Normal), 1.0);
 	output.OcclusionRoughnessMetallic = float4(material.Occlusion, material.Roughness, material.Metallic, 1.0);
 	output.Emissive = float4(material.Emissive, 1.0);
 

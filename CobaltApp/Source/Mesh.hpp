@@ -17,7 +17,7 @@ namespace Cobalt
 		glm::vec3 Normal;
 		float TexCoordV;
 
-		//uint32_t MaterialHandle;
+		//glm::vec4 Tangent;
 	};
 
 	/*struct MeshSurface

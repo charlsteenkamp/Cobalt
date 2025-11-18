@@ -18,6 +18,8 @@ namespace Cobalt
 		Shader& Shader;
 
 		VkPrimitiveTopology PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		VkCullModeFlags CullMode = VK_CULL_MODE_NONE;
+		VkFrontFace FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 		bool EnableDepthTesting = true;
 

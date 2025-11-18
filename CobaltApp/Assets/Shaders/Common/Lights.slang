@@ -17,14 +17,6 @@ public struct DirectionalLight : ILightEnv
 	{
 		return Intensity * brdf.Evaluate(viewDir, -Direction, normal);		
 	}
-
-	/*public float3 CalculateLuminance(in UnpackedMaterial material, in float3 normal, in float3 viewDir)
-	{
-		float3 lightDir = -Direction;
-		float nDotL = saturate(dot(normal, lightDir));
-
-		return BRDF(normal, viewDir, lightDir, material) * nDotL;
-	}*/
 };
 
 /*public struct PointLight

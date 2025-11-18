@@ -20,6 +20,7 @@ public struct MeshVertex
 	public float  TexCoordU;
 	public float3 Normal;
 	public float  TexCoordV;
+	//public float4 Tangent;
 };
 
 public struct Object
