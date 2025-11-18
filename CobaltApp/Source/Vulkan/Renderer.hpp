@@ -67,8 +67,8 @@ namespace Cobalt
 		static void OnResize();
 
 	public:
-		static VkRenderPass GetMainRenderPass() { return sData->MainRenderPass; }
-		static const Pipeline& GetPBRPipeline() { return *sData->PBRPipeline; }
+		//static VkRenderPass GetMainRenderPass() { return sData->MainRenderPass; }
+		static const Pipeline& GetPBRPipeline() { return *sData->GeometryPassPipeline; }
 
 	public:
 		// Called by Assetmanager
@@ -88,7 +88,7 @@ namespace Cobalt
 		static void CreateOrRecreateFramebuffers();
 
 		// Returns non-owning pointer to created pipeline
-		static Pipeline* CreatePipeline(const PipelineInfo& info, VkRenderPass renderPass);
+		//static Pipeline* CreatePipeline(const PipelineInfo& info, VkRenderPass renderPass);
 
 		static std::vector<DrawCall> CullDrawCalls(const std::vector<DrawCall>& draws);
 		static std::vector<DrawBatch> BatchDrawCalls();
@@ -96,18 +96,25 @@ namespace Cobalt
 	private:
 		struct RendererData
 		{
-			VkRenderPass MainRenderPass;
-			std::vector<VkFramebuffer> Framebuffers;
+			//VkRenderPass MainRenderPass;
+			VkRenderPass GeometryRenderPass, LightingRenderPass;
 
+			std::unique_ptr<Texture> BaseColorTexture, NormalTexture, OcclusionRoughnessMetallicTexture, EmissiveTexture;
 			std::unique_ptr<Texture> DepthTexture;
+
+			std::vector<VkFramebuffer> GeometryPassFramebuffers, LightingPassFramebuffers; // by backbuffer index
 
 			SceneData ActiveScene;
 
 			std::unique_ptr<ShaderLibrary> Shaders;
 			ShaderHandle PBRShaderHandle;
+			ShaderHandle GeometryPassShaderHandle;
+			ShaderHandle LightingPassShaderHandle;
 
-			std::vector<std::unique_ptr<Pipeline>> Pipelines;
-			Pipeline* PBRPipeline = nullptr;
+			//std::vector<std::unique_ptr<Pipeline>> Pipelines;
+			//Pipeline* PBRPipeline = nullptr;
+			std::unique_ptr<Pipeline> GeometryPassPipeline;
+			std::unique_ptr<Pipeline> LightingPassPipeline;
 
 			// per frame-in-flight
 			std::vector<std::unique_ptr<VulkanBuffer>> SceneDataUniformBuffers;

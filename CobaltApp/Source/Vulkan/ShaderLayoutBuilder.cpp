@@ -192,16 +192,25 @@ namespace Cobalt
 		for (int32_t set = 0; set < mDescriptorSetInfos.size(); set++)
 		{
 			const DescriptorSetInfo& descriptorSetInfo = mDescriptorSetInfos[mDescriptorSpaceIndexMap.at(set)];
+			std::vector<VkDescriptorBindingFlags> descriptorBindingFlags((uint32_t)descriptorSetInfo.Bindings.size());
 
-			VkDescriptorBindingFlags descriptorBindingFlags[] = {
-				0, 0, 0,
-				VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT /* | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT*/
-			};
+			for (uint32_t i = 0; i < descriptorBindingFlags.size(); i++)
+			{
+				const VkDescriptorSetLayoutBinding& binding = descriptorSetInfo.Bindings[i];
+				if (binding.descriptorCount == CO_BINDLESS_DESCRIPTOR_COUNT)
+				{
+					descriptorBindingFlags[i] = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+				}
+				else
+				{
+					descriptorBindingFlags[i] = 0;
+				}
+			}
 
 			VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlagsCreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-				.bindingCount = 4,
-				.pBindingFlags = descriptorBindingFlags
+				.bindingCount = (uint32_t)descriptorBindingFlags.size(),
+				.pBindingFlags = descriptorBindingFlags.data()
 			};
 
 			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {

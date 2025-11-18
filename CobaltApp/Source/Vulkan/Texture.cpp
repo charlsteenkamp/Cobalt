@@ -89,6 +89,12 @@ namespace Cobalt
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
 		};
 
+		if (mUsage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+		{
+			//imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			mImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		}
+
 		VmaAllocationCreateInfo allocCreateInfo = {
 			.usage = VMA_MEMORY_USAGE_AUTO,
 		};
@@ -152,12 +158,12 @@ namespace Cobalt
 			VkSamplerCreateInfo samplerCreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 				.flags = 0,
-				.magFilter = VK_FILTER_LINEAR,
-				.minFilter = VK_FILTER_LINEAR,
+				.magFilter = VK_FILTER_NEAREST,
+				.minFilter = VK_FILTER_NEAREST,
 				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-				.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-				.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-				.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+				.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+				.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
 				.mipLodBias = 0.0f,
 				.anisotropyEnable = VK_TRUE,
 				.maxAnisotropy = physicalDeviceProperties.limits.maxSamplerAnisotropy,

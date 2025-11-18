@@ -1,5 +1,7 @@
 module LightingPass;
 
+import Common.Common;
+import Common.Material;
 import Common.Lights;
 import Common.BRDF;
 
@@ -14,6 +16,10 @@ struct VSOutput
 	float4       Position:     SV_Position;
 	CoarseVertex CoarseVertex: CoarseVertex;
 };
+
+// 00: 0, 0,   -1, -1
+// 01: 1, 0,    1, -1
+// 10: 0, 1,   -1,  1
 
 [shader("vertex")]
 VSOutput VSMain(uint vertexID: SV_VertexID)
@@ -34,7 +40,8 @@ struct GBuffers
 	Sampler2D SamplerEmissive;
 };
 
-FSOutput FSMain(CoarseVertex coarseVertex: CoarseVertex, uniform ConstantBuffer<Scene> scene, uniform GBuffers gBuffers): SV_Target
+[shader("fragment")]
+float4 FSMain(CoarseVertex coarseVertex: CoarseVertex, uniform ConstantBuffer<Scene> scene, uniform GBuffers gBuffers): SV_Target
 {
 	float3 occlusionRoughnessMetallic = gBuffers.SamplerOcclusionRoughnessMetallic.Sample(coarseVertex.UV).xyz;
 
@@ -58,7 +65,7 @@ FSOutput FSMain(CoarseVertex coarseVertex: CoarseVertex, uniform ConstantBuffer<
 	color = color / (color + float3(1.0)); // HDR tonemapping
 	color = pow(color, float3(1.0 / 2.2)); // Gamma correction
 	
-	return float4(color, 1.0);
-
+	//return float4(color, 1.0);
+	return float4(material.Normal, 1.0);
 }
 

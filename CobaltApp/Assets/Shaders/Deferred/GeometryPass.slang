@@ -43,6 +43,7 @@ struct FSOutput
 	float4 Emissive:                   SV_Target3;
 };
 
+[shader("fragment")]
 FSOutput FSMain(CoarseVertex coarseVertex: CoarseVertex, uniform StructuredBuffer<PackedMaterial> materials, uniform Sampler2D textures[])
 {
 	PackedMaterial packedMaterial = materials[coarseVertex.MaterialHandle];
@@ -57,8 +58,11 @@ FSOutput FSMain(CoarseVertex coarseVertex: CoarseVertex, uniform StructuredBuffe
 
 	FSOutput output;
 	output.BaseColor = material.BaseColor;
-	output.Normal = float4(material.Normal, 1.0);
+	//output.Normal = float4(material.Normal, 1.0);
+	output.Normal = float4(coarseVertex.Normal, 1.0);
 	output.OcclusionRoughnessMetallic = float4(material.Occlusion, material.Roughness, material.Metallic, 1.0);
 	output.Emissive = float4(material.Emissive, 1.0);
+
+	return output;
 }
 

@@ -107,6 +107,8 @@ namespace Cobalt
 		CO_PROFILE_FN();
 
 		mProjectionMatrix = glm::perspective(mFOV, mAspectRatio, mNearClip, mFarClip);
+		mProjectionMatrix[1][1] *= -1.0f; // Flip y
+
 		mViewProjectionMatrix = mProjectionMatrix * mViewMatrix;
 	}
 

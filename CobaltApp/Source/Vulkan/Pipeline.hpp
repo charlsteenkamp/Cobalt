@@ -8,6 +8,11 @@
 namespace Cobalt
 {
 
+	struct ColorAttachment
+	{
+		bool Blend = true;
+	};
+
 	struct PipelineInfo
 	{
 		Shader& Shader;
@@ -15,6 +20,9 @@ namespace Cobalt
 		VkPrimitiveTopology PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
 		bool EnableDepthTesting = true;
+
+		// TODO: add more options e.g. color format
+		std::vector<ColorAttachment> ColorAttachments;
 	};
 
 	class Pipeline

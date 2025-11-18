@@ -142,24 +142,40 @@ namespace Cobalt
 			.maxDepthBounds = 1.0f
 		};
 
-		VkPipelineColorBlendAttachmentState colorBlendAttachmentState = {
-			.blendEnable = VK_TRUE,
-			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-			.colorBlendOp = VK_BLEND_OP_ADD,
-			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-			.alphaBlendOp = VK_BLEND_OP_ADD,
-			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-		};
+		std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachmentStates(mInfo.ColorAttachments.size());
+
+		for (uint32_t i = 0; i < mInfo.ColorAttachments.size(); i++)
+		{
+			if (mInfo.ColorAttachments[i].Blend)
+			{
+				colorBlendAttachmentStates[i] = {
+					.blendEnable = VK_TRUE,
+					.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+					.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+					.colorBlendOp = VK_BLEND_OP_ADD,
+					.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+					.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+					.alphaBlendOp = VK_BLEND_OP_ADD,
+					.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+				};
+			}
+			else
+			{
+				colorBlendAttachmentStates[i] = {
+					.blendEnable = VK_FALSE,
+					.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+
+				};
+			}
+		}
 
 		VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 			.flags = 0,
 			.logicOpEnable = VK_FALSE,
 			.logicOp = {},
-			.attachmentCount = 1,
-			.pAttachments = &colorBlendAttachmentState,
+			.attachmentCount = (uint32_t)colorBlendAttachmentStates.size(),
+			.pAttachments = colorBlendAttachmentStates.data(),
 		};
 
 		VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
