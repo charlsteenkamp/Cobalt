@@ -224,8 +224,9 @@ namespace Cobalt
 				fastgltf::iterateAccessorWithIndex<fastgltf::math::nvec3>(gltf, verticesAccessor,
 					[&vertices, firstVertexIndex](fastgltf::math::nvec3 position, size_t index)
 					{
-						vertices[firstVertexIndex + index].Position       = FastGLTFVec3ToGLMVec3(position);
-						//vertices[firstVertexIndex + index].MaterialHandle = materialHandle;
+						vertices[firstVertexIndex + index].Position.x = position.x();
+						vertices[firstVertexIndex + index].Position.y = position.y();
+						vertices[firstVertexIndex + index].Position.z = position.z();
 					}
 				);
 
@@ -236,14 +237,16 @@ namespace Cobalt
 					fastgltf::iterateAccessorWithIndex<fastgltf::math::nvec3>(gltf, gltf.accessors[normals->accessorIndex],
 						[&vertices, firstVertexIndex](fastgltf::math::nvec3 normal, size_t index)
 						{
-							vertices[firstVertexIndex + index].Normal = FastGLTFVec3ToGLMVec3(normal);
+							vertices[firstVertexIndex + index].Normal.x = normal.x();
+							vertices[firstVertexIndex + index].Normal.y = normal.y();
+							vertices[firstVertexIndex + index].Normal.z = normal.z();
 						}
 					);
 				}
 
 				// Load tangents
 
-#if 0
+#if 1
 				if (auto tangents = primitive.findAttribute("TANGENT"); tangents != primitive.attributes.end())
 				{
 					fastgltf::iterateAccessorWithIndex<fastgltf::math::nvec4>(gltf, gltf.accessors[tangents->accessorIndex],
@@ -260,10 +263,10 @@ namespace Cobalt
 				if (auto uv = primitive.findAttribute("TEXCOORD_0"); uv != primitive.attributes.end())
 				{
 					fastgltf::iterateAccessorWithIndex<fastgltf::math::nvec2>(gltf, gltf.accessors[uv->accessorIndex],
-						[&vertices, firstVertexIndex](fastgltf::math::nvec2 v, size_t index)
+						[&vertices, firstVertexIndex](fastgltf::math::nvec2 uv, size_t index)
 						{
-							vertices[firstVertexIndex + index].TexCoordU = v.x();
-							vertices[firstVertexIndex + index].TexCoordV = v.y();
+							vertices[firstVertexIndex + index].UV.x = uv.x();
+							vertices[firstVertexIndex + index].UV.y = uv.y();
 						}
 					);
 				}

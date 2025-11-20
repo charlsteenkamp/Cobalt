@@ -16,11 +16,10 @@ public struct Scene
 
 public struct MeshVertex
 {
-	public float3 Position;
-	public float  TexCoordU;
-	public float3 Normal;
-	public float  TexCoordV;
-	//public float4 Tangent;
+	public float4 Position;
+	public float4 Normal;
+	public float4 Tangent;
+	public float4 UV;
 };
 
 public struct Object

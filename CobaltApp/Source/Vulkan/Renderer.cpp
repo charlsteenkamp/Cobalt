@@ -17,7 +17,7 @@ namespace Cobalt
 
 		sData = new RendererData();
 
-		CreateOrRecreateDepthTexture();
+		CreateOrRecreateAttachments();
 
 		// Create the Render Pass
 
@@ -235,11 +235,6 @@ namespace Cobalt
 			uint32_t width  = GraphicsContext::Get().GetSwapchain().GetExtent().width;
 			uint32_t height = GraphicsContext::Get().GetSwapchain().GetExtent().height;
 
-			sData->PositionTexture                   = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
-			sData->BaseColorTexture                  = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
-			sData->NormalTexture                     = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
-			sData->OcclusionRoughnessMetallicTexture = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
-			sData->EmissiveTexture                   = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
 #endif
 		}
 
@@ -289,8 +284,8 @@ namespace Cobalt
 		PipelineInfo geometryPassPipelineInfo = {
 			.Shader = *sData->Shaders->GetShader(sData->GeometryPassShaderHandle),
 			.PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-			.CullMode = VK_CULL_MODE_NONE,
-			.FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+			.CullMode = VK_CULL_MODE_BACK_BIT,
+			.FrontFace = VK_FRONT_FACE_CLOCKWISE,
 			.EnableDepthTesting = true,
 			.ColorAttachments = {
 				{ false }, { false }, { false }, { false }, { false }
@@ -355,7 +350,7 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		CreateOrRecreateDepthTexture();
+		CreateOrRecreateAttachments();
 		CreateOrRecreateFramebuffers();
 	}
 
@@ -556,28 +551,50 @@ namespace Cobalt
 
 		sData->DrawCalls.emplace_back(mesh);
 
-		/*ObjectData object;
-		object.Transform       = transform.GetTransform();
-		object.NormalMatrix    = glm::transpose(glm::inverse(object.Transform));
-		object.VertexBufferRef = mesh->GetVertexBufferReference();
-		object.MaterialHandle  = mesh->GetMaterial()->mMaterialHandle;
-
-		sData->Objects.push_back(object);*/
 
 		sData->Objects.emplace_back(transform.GetTransform(), mesh);
 	}
 
-	void Renderer::CreateOrRecreateDepthTexture()
+	void Renderer::CreateOrRecreateAttachments()
 	{
 		CO_PROFILE_FN();
+
+		static bool create = true;
 
 		uint32_t width  = GraphicsContext::Get().GetSwapchain().GetExtent().width;
 		uint32_t height = GraphicsContext::Get().GetSwapchain().GetExtent().height;
 
-		if (sData->DepthTexture)
-			sData->DepthTexture->Recreate(width, height);
+		if (create)
+		{
+			create = false;
+
+			sData->PositionTexture                   = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
+			sData->BaseColorTexture                  = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
+			sData->NormalTexture                     = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
+			sData->OcclusionRoughnessMetallicTexture = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
+			sData->EmissiveTexture                   = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
+			sData->DepthTexture                      = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
+		}
 		else
-			sData->DepthTexture = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
+		{
+			sData->PositionTexture->Recreate(width, height);
+			sData->BaseColorTexture->Recreate(width, height);                 
+			sData->NormalTexture->Recreate(width, height);
+			sData->OcclusionRoughnessMetallicTexture->Recreate(width, height);
+			sData->EmissiveTexture->Recreate(width, height);
+			sData->DepthTexture->Recreate(width, height);
+
+			for (uint32_t i = 0; i < GraphicsContext::Get().GetFrameCount(); i++)
+			{
+				VulkanDescriptorSet* descriptorSet = sData->LightingPassPipeline->GetDescriptorSet(i);
+				descriptorSet->SetImageBinding(*sData->PositionTexture, 1);
+				descriptorSet->SetImageBinding(*sData->BaseColorTexture, 2);
+				descriptorSet->SetImageBinding(*sData->NormalTexture, 3);
+				descriptorSet->SetImageBinding(*sData->OcclusionRoughnessMetallicTexture, 4);
+				descriptorSet->SetImageBinding(*sData->EmissiveTexture, 5);
+				descriptorSet->Update();
+			}
+		}
 	}
 
 	void Renderer::CreateOrRecreateFramebuffers()

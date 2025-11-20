@@ -230,6 +230,9 @@ namespace Cobalt
 		if (mImageView)
 			vkDestroyImageView(GraphicsContext::Get().GetDevice(), mImageView, nullptr);
 
+		if (mSampler)
+			vkDestroySampler(GraphicsContext::Get().GetDevice(), mSampler, nullptr);
+
 		//if (mMemory)
 			//vkFreeMemory(GraphicsContext::Get().GetDevice(), mMemory, nullptr);
 	}

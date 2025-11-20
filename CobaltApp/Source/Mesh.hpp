@@ -11,21 +11,11 @@ namespace Cobalt
 
 	struct MeshVertex
 	{
-		glm::vec3 Position;
-		float TexCoordU;
-
-		glm::vec3 Normal;
-		float TexCoordV;
-
-		//glm::vec4 Tangent;
+		glm::vec4 Position{};
+		glm::vec4 Normal{};
+		glm::vec4 Tangent{};
+		glm::vec4 UV{};
 	};
-
-	/*struct MeshSurface
-	{
-		uint32_t FirstIndex = 0;
-		uint32_t IndexCount = 0;
-		AssetHandle MaterialAssetHandle = CO_INVALID_ASSET_HANDLE;
-	};*/
 
 	class Material;
 

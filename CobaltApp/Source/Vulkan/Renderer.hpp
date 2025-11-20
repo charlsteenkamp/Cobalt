@@ -84,7 +84,7 @@ namespace Cobalt
 		static void DrawMesh(const Transform& transform, const Mesh* mesh);
 
 	private:
-		static void CreateOrRecreateDepthTexture();
+		static void CreateOrRecreateAttachments();
 		static void CreateOrRecreateFramebuffers();
 
 		// Returns non-owning pointer to created pipeline

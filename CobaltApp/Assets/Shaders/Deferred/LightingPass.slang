@@ -57,6 +57,7 @@ float4 FSMain(VSOutput input, uniform ConstantBuffer<Scene> scene, uniform GBuff
 	color = pow(color, float3(1.0 / 2.2)); // Gamma correction
 	
 	return float4(color, 1.0);
+	//return float4(material.Normal.xyz, 1.0);
 	//return float4(float3(0.5) + 0.5 * material.Normal.xyz, 1.0);
 	//return float4(float3(0.5) + 0.5 * fragPosition, 1.0);
 }
