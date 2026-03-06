@@ -5,7 +5,6 @@
 #include "Renderer.hpp"
 #include "ImGuiBackend.hpp"
 
-
 #include <cstdlib>
 #include <iostream>
 
@@ -156,11 +155,22 @@ namespace Cobalt
 		// Create logical device
 
 		{
-			const char* deviceExtensions[] = { "VK_KHR_swapchain" };
+			const char* deviceExtensions[] = { "VK_KHR_swapchain", VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME };
 			const float queuePriority[] = { 1.0f };
+
+			VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeapFeatures = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
+				.descriptorHeap = VK_TRUE
+			};
+			
+			VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferFeatures = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
+				.descriptorBuffer = VK_TRUE
+			};
 
 			VkPhysicalDeviceVariablePointerFeatures variablePointerFeatures = {
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES,
+				.pNext = (void*)&descriptorBufferFeatures,
 				.variablePointersStorageBuffer = VK_TRUE,
 				.variablePointers = VK_TRUE,
 			};
@@ -208,7 +218,7 @@ namespace Cobalt
 				.pNext = &shaderDrawParametersFeatures,
 				.queueCreateInfoCount = 1,
 				.pQueueCreateInfos = queueCreateInfo,
-				.enabledExtensionCount = 1,
+				.enabledExtensionCount = 2,
 				.ppEnabledExtensionNames = deviceExtensions,
 				.pEnabledFeatures = &physicalDeviceFeatures
 			};
@@ -218,6 +228,7 @@ namespace Cobalt
 			vkGetDeviceQueue(mDevice, mQueueFamily, 0, &mQueue);
 		}
 
+#if 0
 		// Create descriptor pool
 		
 		{
@@ -245,6 +256,7 @@ namespace Cobalt
 
 			VK_CALL(vkCreateDescriptorPool(mDevice, &createInfo, nullptr, &mDescriptorPool));
 		}
+#endif
 
 		// Create window surface
 
@@ -313,6 +325,8 @@ namespace Cobalt
 				}
 			}
 		}
+
+		mDescriptorBufferManager = std::make_unique<DescriptorBufferManager>();
 
 		// Initialize VMA
 

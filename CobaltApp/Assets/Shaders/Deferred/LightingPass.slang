@@ -66,6 +66,6 @@ float4 FSMain(CoarseVertex coarseVertex: CoarseVertex, uniform ConstantBuffer<Sc
 	color = pow(color, float3(1.0 / 2.2)); // Gamma correction
 	
 	//return float4(color, 1.0);
-	return float4(material.Normal, 1.0);
+	return float4(material.color, 1.0);
 }
 
