@@ -34,6 +34,13 @@ namespace Cobalt
 		uint32_t MipLevels = 1;
 	};
 
+	struct Image
+	{
+		VkSampler Sampler;
+		VkImageView ImageView;
+		VkImageLayout ImageLayout;
+	};
+
 	class Texture
 	{
 	public:
@@ -56,6 +63,7 @@ namespace Cobalt
 		VkImageLayout GetImageLayout() const { return mImageLayout; }
 		void SetImageLayout(VkImageLayout layout) { mImageLayout = layout; }
 
+		VkImageUsageFlags  GetImageUsageFlags()  const { return mUsage;       }
 		VkImageAspectFlags GetImageAspectFlags() const { return mImageAspect; }
 
 		uint32_t GetWidth() const { return mWidth; }
@@ -68,7 +76,6 @@ namespace Cobalt
 	private:
 		VkImage mImage = VK_NULL_HANDLE;
 		VkImageView mImageView = VK_NULL_HANDLE;
-		//VkDeviceMemory mMemory = VK_NULL_HANDLE;
 		VkSampler mSampler = VK_NULL_HANDLE;
 
 		VmaAllocation mAllocation;

@@ -129,13 +129,25 @@ namespace Cobalt
 				uint32_t descriptorCount = typeLayout->getDescriptorSetDescriptorRangeDescriptorCount(slangDescriptorSetIndex, descriptorRangeIndex);
 				descriptorCount = descriptorCount != UINT32_MAX ? descriptorCount : CO_BINDLESS_DESCRIPTOR_COUNT;
 
-				descriptorSetInfo.AddBinding(VkDescriptorSetLayoutBinding {
+				VkDescriptorSetLayoutBinding descriptorSetLayoutBinding = {
 					.binding            = bindingOffset.Binding + (uint32_t)typeLayout->getDescriptorSetDescriptorRangeIndexOffset(slangDescriptorSetIndex, descriptorRangeIndex),
 					.descriptorType     = SlangUtils::SlangBindingTypeToVkDescriptorType(slangDescriptorType),
 					.descriptorCount    = descriptorCount,
 					.stageFlags         = VK_SHADER_STAGE_ALL,
 					.pImmutableSamplers = nullptr,
-				});
+				};
+
+				descriptorSetInfo.AddBinding(descriptorSetLayoutBinding);
+
+				slang::VariableLayoutReflection* variableLayout = typeLayout->getContainerVarLayout();
+
+				ShaderParameter shaderParameter;
+				shaderParameter.Kind = SlangUtils::SlangBindingTypeToShaderParameterKind(slangDescriptorType);
+				shaderParameter.Set = descriptorSetIndex;
+				shaderParameter.Binding = descriptorSetLayoutBinding.binding;
+				shaderParameter.UniformByteOffset = variableLayout->getOffset();
+				shaderParameter.UniformSize = typeLayout->getSize();
+				shaderParameter.ElementStride = typeLayout->getStride();
 			}
 		}
 
@@ -216,7 +228,7 @@ namespace Cobalt
 			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 				.pNext = &descriptorSetLayoutBindingFlagsCreateInfo,
-				.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+				.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT | VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT,
 				.bindingCount = (uint32_t)descriptorSetInfo.Bindings.size(),
 				.pBindings = descriptorSetInfo.Bindings.data(),
 			};

@@ -1,4 +1,6 @@
 #pragma once
+#include "ShaderParameters.hpp"
+
 #include <slang/slang.h>
 #include <iostream>
 #include <vulkan/vulkan.h>
@@ -50,5 +52,22 @@ namespace Cobalt::SlangUtils
 		}
 	}
 
+	inline ShaderParameterKind SlangBindingTypeToShaderParameterKind(slang::BindingType bindingType)
+	{
+		switch (bindingType)
+		{
+			case slang::BindingType::Sampler: return ShaderParameterKind::Sampler;
+			case slang::BindingType::Texture: return ShaderParameterKind::SampledImage;
+			case slang::BindingType::ConstantBuffer: return ShaderParameterKind::UniformBuffer;
+			case slang::BindingType::ParameterBlock: return ShaderParameterKind::UniformBuffer;
+			case slang::BindingType::TypedBuffer: return ShaderParameterKind::StorageBuffer;
+			case slang::BindingType::RawBuffer: return ShaderParameterKind::StorageBuffer;
+			case slang::BindingType::CombinedTextureSampler: return ShaderParameterKind::CombinedImageSampler;
+			case slang::BindingType::InputRenderTarget: return ShaderParameterKind::InputAttachment;
+			case slang::BindingType::MutableTexture: return ShaderParameterKind::StorageImage;
+			case slang::BindingType::MutableTypedBuffer: return ShaderParameterKind::StorageBuffer;
+			case slang::BindingType::MutableRawBuffer: return ShaderParameterKind::StorageBuffer;
+		}
+	}
 
 }

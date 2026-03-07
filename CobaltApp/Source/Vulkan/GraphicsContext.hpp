@@ -1,6 +1,8 @@
 #pragma once
 #include "../Window.hpp"
 #include "Swapchain.hpp"
+#include "DescriptorBufferManager.hpp"
+#include "DescriptorCache.hpp"
 #include "Module.hpp"
 
 #define GLFW_INCLUDE_NONE
@@ -37,9 +39,13 @@ namespace Cobalt
 		VkPhysicalDevice GetPhysicalDevice() const { return mPhysicalDevice; }
 		VkQueue          GetQueue()          const { return mQueue;    }
 		int32_t GetQueueFamily() const { return mQueueFamily; }
-		VkDescriptorPool GetDescriptorPool() const { return mDescriptorPool; }
 
 		const Swapchain& GetSwapchain() const { return *mSwapchain; }
+
+		DescriptorBufferManager& GetDescriptorBufferManager() { return *mDescriptorBufferManager; }
+		const DescriptorBufferManager& GetDescriptorBufferManager() const { return *mDescriptorBufferManager; }
+
+		DescriptorCache& GetDescriptorCache() { return *mDescriptorCache; }
 
 		VmaAllocator GetAllocator() const { return mAllocator; }
 
@@ -47,6 +53,9 @@ namespace Cobalt
 
 		uint32_t GetFrameCount() const { return mFrameCount; }
 		uint32_t GetFrameIndex() const { return mFrameIndex; }
+
+		const FrameData& GetFrameData(uint32_t index) const { return mFrames[index]; }
+		      FrameData& GetFrameData(uint32_t index)       { return mFrames[index]; }
 
 	public:
 		VkCommandBuffer AllocateCommandBuffer(VkCommandPool commandPool);
@@ -86,11 +95,13 @@ namespace Cobalt
 		int32_t                  mQueueFamily;
 		VkQueue                  mQueue;
 		VkDevice                 mDevice;
-		VkDescriptorPool         mDescriptorPool;
 		VkSurfaceKHR             mSurface;
-		//VkCommandPool            mTransientCommandPool;
 
 		std::unique_ptr<Swapchain> mSwapchain;
+
+		std::unique_ptr<DescriptorBufferManager> mDescriptorBufferManager;
+		std::unique_ptr<DescriptorCache> mDescriptorCache;
+
 
 		bool mRecreateSwapchain = false;
 

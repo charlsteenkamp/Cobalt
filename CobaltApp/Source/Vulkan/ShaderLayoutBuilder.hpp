@@ -1,4 +1,6 @@
 #pragma once
+#include "ShaderParameters.hpp"
+
 #include <slang/slang.h>
 #include <vulkan/vulkan.h>
 #include <vector>
@@ -75,6 +77,8 @@ namespace Cobalt
 		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return mDescriptorSetLayouts; }
 		const std::vector<VkPushConstantRange>& GetPushConstantRanges() const { return mPushConstantRanges; }
 
+		const ShaderParameterMap& GetShaderParameters() const { return mShaderParameters; }
+
 	private:
 		void AddGlobalBindings(slang::VariableLayoutReflection* globalVarLayout);
 		void AddEntryPoint(slang::EntryPointLayout* entryPointLayout);
@@ -91,6 +95,8 @@ namespace Cobalt
 		std::vector<VkPushConstantRange> mPushConstantRanges;
 		std::vector<DescriptorSetInfo> mDescriptorSetInfos;
 		std::unordered_map<int32_t, int32_t> mDescriptorSpaceIndexMap; // space - index into mDescriptorSetInfos
+		
+		ShaderParameterMap mShaderParameters;
 	};
 
 }
