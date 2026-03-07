@@ -2,6 +2,7 @@
 #include "VulkanUtils.hpp"
 #include "VulkanBuffer.hpp"
 #include "Texture.hpp"
+#include "DescriptorBindings.hpp"
 
 #include <map>
 #include <functional>
@@ -35,8 +36,11 @@ namespace Cobalt
 	public:
 		DescriptorHandle AllocateDescriptor(VkDescriptorSetLayout descriptorSetLayout, bool resourceDescriptor, bool samplerDescriptor);
 
-		void WriteDescriptor(const VulkanBuffer& buffer, DescriptorHandle descriptorHandle, uint32_t binding, uint32_t element = 0);
-		void WriteDescriptor(const Texture& image, DescriptorHandle descriptorHandle, uint32_t binding, uint32_t element = 0);
+		void WriteDescriptor(const DescriptorBinding& descriptorBinding, DescriptorHandle descriptorHandle);
+
+	private:
+		void WriteBufferDescriptor(DescriptorHandle descriptorHandle, uint32_t binding, uint32_t element, VkDescriptorType descriptorType, size_t descriptorSize, VkDeviceAddress address, VkDeviceSize range);
+		void WriteImageDescriptor(DescriptorHandle descriptorHandle, uint32_t binding, uint32_t element, VkDescriptorType descriptorType, size_t descriptorSize, VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout);
 
 	private:
 		std::vector<DescriptorInfo> mDescriptorInfos;

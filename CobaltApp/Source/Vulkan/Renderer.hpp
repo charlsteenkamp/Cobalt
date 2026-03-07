@@ -8,6 +8,7 @@
 #include "Material.hpp"
 #include "Mesh.hpp"
 #include "Asset.hpp"
+#include "DescriptorBindings.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -99,7 +100,7 @@ namespace Cobalt
 			//VkRenderPass MainRenderPass;
 			VkRenderPass GeometryRenderPass, LightingRenderPass;
 
-			std::unique_ptr<Texture> BaseColorTexture, NormalTexture, OcclusionRoughnessMetallicTexture, EmissiveTexture;
+			std::unique_ptr<Texture> PositionTexture, BaseColorTexture, NormalTexture, OcclusionRoughnessMetallicTexture, EmissiveTexture;
 			std::unique_ptr<Texture> DepthTexture;
 
 			std::vector<VkFramebuffer> GeometryPassFramebuffers, LightingPassFramebuffers; // by backbuffer index
@@ -123,6 +124,11 @@ namespace Cobalt
 
 			std::vector<ObjectData>   Objects;
 			std::vector<MaterialData> Materials;
+
+			std::vector<DescriptorHandle> GeometryPassDescriptorHandles;
+			std::vector<DescriptorHandle> LightingPassDescriptorHandles;
+
+			std::vector<Image> BindlessImages;
 
 			static constexpr uint32_t sDescriptorSetGlobalBinding   = 0;
 			static constexpr uint32_t sDescriptorSetObjectBinding   = 1;

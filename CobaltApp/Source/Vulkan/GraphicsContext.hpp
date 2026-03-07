@@ -2,6 +2,7 @@
 #include "../Window.hpp"
 #include "Swapchain.hpp"
 #include "DescriptorBufferManager.hpp"
+#include "DescriptorCache.hpp"
 #include "Module.hpp"
 
 #define GLFW_INCLUDE_NONE
@@ -40,7 +41,11 @@ namespace Cobalt
 		int32_t GetQueueFamily() const { return mQueueFamily; }
 
 		const Swapchain& GetSwapchain() const { return *mSwapchain; }
+
+		DescriptorBufferManager& GetDescriptorBufferManager() { return *mDescriptorBufferManager; }
 		const DescriptorBufferManager& GetDescriptorBufferManager() const { return *mDescriptorBufferManager; }
+
+		DescriptorCache& GetDescriptorCache() { return *mDescriptorCache; }
 
 		VmaAllocator GetAllocator() const { return mAllocator; }
 
@@ -93,7 +98,10 @@ namespace Cobalt
 		VkSurfaceKHR             mSurface;
 
 		std::unique_ptr<Swapchain> mSwapchain;
+
 		std::unique_ptr<DescriptorBufferManager> mDescriptorBufferManager;
+		std::unique_ptr<DescriptorCache> mDescriptorCache;
+
 
 		bool mRecreateSwapchain = false;
 

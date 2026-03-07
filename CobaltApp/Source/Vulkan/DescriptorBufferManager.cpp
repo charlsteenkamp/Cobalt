@@ -10,7 +10,7 @@ namespace Cobalt
 		return (value + alignment - 1) & ~(alignment - 1);
 	}
 
-	DescriptorBufferManager::DescriptorBufferManager(uint32_t frameCount)
+	DescriptorBufferManager::DescriptorBufferManager()
 	{
 		CO_PROFILE_FN();
 
@@ -24,6 +24,7 @@ namespace Cobalt
 		uint32_t resourceDescriptorBufferSize = 0;
 		uint32_t samplerDescriptorBufferSize = 0;
 
+		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
 		mResourceDescriptorBuffers.resize(frameCount);
 
 		for (uint32_t i = 0; i < frameCount; i++)
@@ -68,25 +69,41 @@ namespace Cobalt
 		return mDescriptorInfos.size() - 1;
 	}
 
-	void DescriptorBufferManager::WriteDescriptor(const VulkanBuffer& buffer, DescriptorHandle descriptorHandle, uint32_t binding, uint32_t element = 0)
+	void DescriptorBufferManager::WriteDescriptor(const DescriptorBinding& descriptorBinding, DescriptorHandle descriptorHandle)
+	{
+		CO_PROFILE_FN();
+
+		if (descriptorBinding.DescriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		{
+			WriteBufferDescriptor(
+				descriptorHandle, descriptorBinding.Binding, descriptorBinding.Element,
+				descriptorBinding.DescriptorType, mDescriptorBufferProperties.uniformBufferDescriptorSize,
+				descriptorBinding.Address, descriptorBinding.Range
+			);
+		}
+		else if (descriptorBinding.DescriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+		{
+			WriteBufferDescriptor(
+				descriptorHandle, descriptorBinding.Binding, descriptorBinding.Element,
+				descriptorBinding.DescriptorType, mDescriptorBufferProperties.storageBufferDescriptorSize,
+				descriptorBinding.Address, descriptorBinding.Range
+			);
+		}
+		else if (descriptorBinding.DescriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+		{
+			WriteImageDescriptor(
+				descriptorHandle, descriptorBinding.Binding, descriptorBinding.Element,
+				descriptorBinding.DescriptorType, mDescriptorBufferProperties.combinedImageSamplerDescriptorSize,
+				descriptorBinding.Sampler, descriptorBinding.ImageView, descriptorBinding.ImageLayout
+			);
+		}
+	}
+
+	void DescriptorBufferManager::WriteBufferDescriptor(DescriptorHandle descriptorHandle, uint32_t binding, uint32_t element, VkDescriptorType descriptorType, size_t descriptorSize, VkDeviceAddress address, VkDeviceSize range)
 	{
 		CO_PROFILE_FN();
 
 		DescriptorInfo descriptorInfo = mDescriptorInfos[descriptorHandle];
-
-		size_t descriptorSize = 0;
-		VkDescriptorType descriptorType{};
-
-		if (buffer.GetUsageFlags() & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
-		{
-			descriptorSize = mDescriptorBufferProperties.uniformBufferDescriptorSize;
-			descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		}
-		else if (buffer.GetUsageFlags() & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
-		{
-			descriptorSize = mDescriptorBufferProperties.storageBufferDescriptorSize;
-			descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		}
 
 		for (auto& resourceDescriptorBuffer : mResourceDescriptorBuffers)
 		{
@@ -98,8 +115,8 @@ namespace Cobalt
 
 			VkDescriptorAddressInfoEXT descriptorAddressInfo = {
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
-				.address = buffer.GetDeviceAddress(),
-				.range = buffer.GetAllocationInfo().size,
+				.address = address,
+				.range = range,
 				.format = VK_FORMAT_UNDEFINED,
 			};
 
@@ -117,14 +134,11 @@ namespace Cobalt
 		}
 	}
 
-	void DescriptorBufferManager::WriteDescriptor(const Texture& image, DescriptorHandle descriptorHandle, uint32_t binding, uint32_t element = 0)
+	void DescriptorBufferManager::WriteImageDescriptor(DescriptorHandle descriptorHandle, uint32_t binding, uint32_t element, VkDescriptorType descriptorType, size_t descriptorSize, VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout)
 	{
 		CO_PROFILE_FN();
 
 		DescriptorInfo descriptorInfo = mDescriptorInfos[descriptorHandle];
-
-		size_t descriptorSize = mDescriptorBufferProperties.combinedImageSamplerDescriptorSize;
-		VkDescriptorType descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
 		VkDeviceSize bindingOffset;
 		vkGetDescriptorSetLayoutBindingOffsetEXT(GraphicsContext::Get().GetDevice(), descriptorInfo.Layout, binding, &bindingOffset);
@@ -133,9 +147,9 @@ namespace Cobalt
 		bindingPtr = bindingPtr + element * descriptorSize;
 
 		VkDescriptorImageInfo descriptorImageInfo = {
-			.sampler = image.GetSampler(),
-			.imageView = image.GetImageView(),
-			.imageLayout = image.GetImageLayout()
+			.sampler = sampler,
+			.imageView = imageView,
+			.imageLayout = imageLayout
 		};
 
 		VkDescriptorGetInfoEXT descriptorGetInfo = {

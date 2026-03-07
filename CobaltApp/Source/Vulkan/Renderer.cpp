@@ -2,6 +2,8 @@
 #include "Renderer.hpp"
 #include "Application.hpp"
 #include "AssetManager.hpp"
+#include "ShaderCursor.hpp"
+#include "DescriptorBufferManager.hpp"
 
 #include <backends/imgui_impl_vulkan.h>
 
@@ -238,6 +240,7 @@ namespace Cobalt
 			uint32_t width  = GraphicsContext::Get().GetSwapchain().GetExtent().width;
 			uint32_t height = GraphicsContext::Get().GetSwapchain().GetExtent().height;
 
+			sData->PositionTexture                   = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
 			sData->BaseColorTexture                  = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
 			sData->NormalTexture                     = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
 			sData->OcclusionRoughnessMetallicTexture = std::make_unique<Texture>(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
@@ -273,15 +276,6 @@ namespace Cobalt
 		// Shader compilation & pipeline creation
 
 		sData->Shaders = std::make_unique<ShaderLibrary>("CobaltApp/Assets/Shaders");
-		/*sData->PBRShaderHandle = sData->Shaders->RegisterShader("Forward/PBRShader.slang");
-
-		PipelineInfo mainPBRPipelineInfo = {
-			.Shader = *sData->Shaders->GetShader(sData->PBRShaderHandle),
-			.PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-			.EnableDepthTesting = true
-		};
-
-		sData->PBRPipeline = CreatePipeline(mainPBRPipelineInfo, sData->MainRenderPass);*/
 
 		sData->GeometryPassShaderHandle = sData->Shaders->RegisterShader("Deferred/GeometryPass.slang");
 		sData->LightingPassShaderHandle = sData->Shaders->RegisterShader("Deferred/LightingPass.slang");
@@ -303,35 +297,13 @@ namespace Cobalt
 		};
 
 		sData->GeometryPassPipeline = std::make_unique<Pipeline>(geometryPassPipelineInfo, sData->GeometryRenderPass);
-		sData->GeometryPassPipeline->AllocateDescriptorSets(0, frameCount);
 
-		//VulkanDescriptorAllocator& descriptorAllocator = GraphicsContext::Get().GetDescriptorAllocator();
-		//VkDescriptorSet geometryPassDescriptorSet = descriptorAllocator.Allocate(geometryPassShader->GetDescriptorSetLayouts()[0]);
+		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
 
 		for (uint32_t i = 0; i < frameCount; i++)
 		{
-			VkDescriptorSet descriptorSet = descriptorAllocator.Allocate(geometryPassDescriptorSetLayout);
-
-			VulkanDescriptorSetWriter descriptorSetWriter(geometryPassDescriptorSetLayout);
-			descriptorSetWriter.WriteBuffer(*sData->SceneDataUniformBuffers[i], 0);
-			descriptorSetWriter.WriteBuffer(*sData->SceneDataUniformBuffers[i], 1);
-			descriptorSetWriter.WriteBuffer(*sData->SceneDataUniformBuffers[i], 2);
-			descriptorSetWriter.Update(descriptorSet);
-
-			GraphicsContext::Get().GetFrameData(i).DescriptorSets.Register(descriptorSetWriter.GetSignature().Hash(), descriptorSet);
+			sData->GeometryPassDescriptorHandles[i] = descriptorBufferManager.AllocateDescriptor(geometryPassShader->GetDescriptorSetLayouts()[0], true, true);
 		}
-
-#if 0
-		for (uint32_t i = 0; i < frameCount; i++)
-		{
-			VulkanDescriptorSet* descriptorSet = sData->GeometryPassPipeline->GetDescriptorSet(i);
-			descriptorSet->SetBufferBinding(*sData->SceneDataUniformBuffers[i], 0);
-			descriptorSet->SetBufferBinding(*sData->ObjectStorageBuffers[i], 1);
-			descriptorSet->SetBufferBinding(*sData->MaterialDataStorageBuffers[i], 2);
-
-			descriptorSet->Update();
-		}
-#endif
 
 		PipelineInfo lightingPassPipelineInfo = {
 			.Shader = *lightingPassShader,
@@ -345,38 +317,11 @@ namespace Cobalt
 		};
 
 		sData->LightingPassPipeline = std::make_unique<Pipeline>(lightingPassPipelineInfo, sData->LightingRenderPass);
-		//sData->LightingPassPipeline->AllocateDescriptorSets(0, frameCount);
-
-		VkDescriptorSetLayout lightingPassDescriptorSetLayout = lightingPassShader->GetDescriptorSetLayouts()[0];
 
 		for (uint32_t i = 0; i < frameCount; i++)
 		{
-			VkDescriptorSet descriptorSet = descriptorAllocator.Allocate(lightingPassDescriptorSetLayout);
-
-			VulkanDescriptorSetWriter descriptorSetWriter(lightingPassDescriptorSetLayout);
-			descriptorSetWriter.WriteBuffer(*sData->SceneDataUniformBuffers[i], 0);
-			descriptorSetWriter.WriteImage(*sData->PositionTexture, 1);
-			descriptorSetWriter.WriteImage(*sData->BaseColorTexture, 2);
-			descriptorSetWriter.WriteImage(*sData->NormalTexture, 3);
-			descriptorSetWriter.WriteImage(*sData->OcclusionRoughnessMetallicTexture, 4);
-			descriptorSetWriter.WriteImage(*sData->EmissiveTexture, 5);
-			descriptorSetWriter.Update(descriptorSet);
-
-			GraphicsContext::Get().GetFrameData(i).DescriptorSets.Register(descriptorSetWriter.GetSignature().Hash(), descriptorSet);
+			sData->LightingPassDescriptorHandles[i] = descriptorBufferManager.AllocateDescriptor(lightingPassShader->GetDescriptorSetLayouts()[0], true, true);
 		}
-
-#if 0
-		for (uint32_t i = 0; i < frameCount; i++)
-		{
-			VulkanDescriptorSet* descriptorSet = sData->LightingPassPipeline->GetDescriptorSet(i);
-			descriptorSet->SetBufferBinding(*sData->SceneDataUniformBuffers[i], 0);
-			descriptorSet->SetImageBinding(*sData->BaseColorTexture, 1);
-			descriptorSet->SetImageBinding(*sData->NormalTexture, 2);
-			descriptorSet->SetImageBinding(*sData->OcclusionRoughnessMetallicTexture, 3);
-			descriptorSet->SetImageBinding(*sData->EmissiveTexture, 4);
-			descriptorSet->Update();
-		}
-#endif
 	}
 
 	void Renderer::Shutdown()
@@ -405,6 +350,13 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
+		sData->BindlessImages.push_back(Image {
+			.Sampler = texture.GetSampler(),
+			.ImageView = texture.GetImageView(),
+			.ImageLayout = texture.GetImageLayout()
+		});
+	
+#if 0
 		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
 
 		for (uint32_t i = 0; i < frameCount; i++)
@@ -415,6 +367,7 @@ namespace Cobalt
 			descriptorSet->SetImageBinding(texture, 3, textureIndex);
 			descriptorSet->Update();
 		}
+#endif
 	}
 
 	void Renderer::UploadMaterial(Material& material)
@@ -515,8 +468,23 @@ namespace Cobalt
 
 		uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
 
-		sData->SceneDataUniformBuffers[frameIndex]->CopyData(&sData->ActiveScene);
-		sData->ObjectStorageBuffers[frameIndex]->CopyData(sData->Objects.data(), sData->Objects.size() * sizeof(ObjectData));
+		VulkanBuffer& sceneDataUniformBuffer = *sData->SceneDataUniformBuffers[frameIndex];
+		VulkanBuffer& objectsStorageBuffer = *sData->ObjectStorageBuffers[frameIndex];
+		VulkanBuffer& materialsStorageBuffer = *sData->MaterialDataStorageBuffers[frameIndex];
+
+		sceneDataUniformBuffer.CopyData(&sData->ActiveScene);
+		objectsStorageBuffer.CopyData(sData->Objects.data(), sData->Objects.size() * sizeof(ObjectData));
+
+		const ShaderParameter& geometryPassShaderParameter = sData->Shaders->GetShader(sData->GeometryPassShaderHandle)->GetShaderParameters();
+
+		DescriptorBindings geometryPassDescriptorBindings;
+		
+		ShaderCursor geometryPassShaderCursor(geometryPassShaderParameter, geometryPassDescriptorBindings, sData->GeometryPassDescriptorHandles[frameIndex]);
+		geometryPassShaderCursor.Field("scene").Write(sceneDataUniformBuffer);
+		geometryPassShaderCursor.Field("objects").Write(objectsStorageBuffer);
+		geometryPassShaderCursor.Field("materials").Write(materialsStorageBuffer);
+		geometryPassShaderCursor.Field("textures").Write(sData->BindlessImages);
+		geometryPassShaderCursor.Finalize();
 
 		CO_PROFILE_GPU_EVENT("Geometry Pass");
 
@@ -549,6 +517,19 @@ namespace Cobalt
 		vkCmdEndRenderPass(commandBuffer);
 
 		// Begin lighting pass
+
+		const ShaderParameter& lightingPassShaderParameter = sData->Shaders->GetShader(sData->LightingPassDescriptorHandles[frameIndex])->GetShaderParameters();
+		DescriptorBindings lightingPassDescriptorBindings;
+
+		ShaderCursor lightingPassShaderCursor(lightingPassShaderParameter, lightingPassDescriptorBindings, sData->LightingPassDescriptorHandles[frameIndex]);
+		lightingPassShaderCursor.Field("scene").Write(sceneDataUniformBuffer);
+		lightingPassShaderCursor.Field("gBuffers")
+			.WriteField("SamplerPosition", *sData->PositionTexture)
+			.WriteField("SamplerBaseColor", *sData->BaseColorTexture)
+			.WriteField("SamplerNormal", *sData->NormalTexture)
+			.WriteField("SamplerOcclusionRoughnessMetallic", *sData->OcclusionRoughnessMetallicTexture)
+			.WriteField("SamplerEmissive", *sData->EmissiveTexture);
+		lightingPassShaderCursor.Finalize();
 
 		CO_PROFILE_GPU_EVENT("Lighting pass");
 

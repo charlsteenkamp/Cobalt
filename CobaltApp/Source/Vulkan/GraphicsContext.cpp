@@ -327,6 +327,7 @@ namespace Cobalt
 		}
 
 		mDescriptorBufferManager = std::make_unique<DescriptorBufferManager>();
+		mDescriptorCache = std::make_unique<DescriptorCache>(*mDescriptorBufferManager);
 
 		// Initialize VMA
 
