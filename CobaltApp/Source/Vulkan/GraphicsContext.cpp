@@ -366,7 +366,6 @@ namespace Cobalt
 		mSwapchain.reset();
 
 		vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
-		vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
 		vkDestroyDevice(mDevice, nullptr);
 
 		auto pfn_vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");

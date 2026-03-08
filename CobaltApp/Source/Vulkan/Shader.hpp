@@ -1,4 +1,6 @@
 #pragma once
+#include "ShaderParameters.hpp"
+
 #include <slang/slang.h>
 #include <slang/slang-com-ptr.h>
 #include <slang/slang-com-helper.h>
@@ -30,6 +32,8 @@ namespace Cobalt
 		const std::vector<ShaderStage>& GetShaderStages() const { return mShaderStages; }
 		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return mDescriptorSetLayouts; }
 
+		const ShaderParameter& GetShaderParameters() const { return mShaderParameters; }
+
 	private:
 		void InitShaderStages();
 		void InitDescriptorSetLayouts();
@@ -39,6 +43,7 @@ namespace Cobalt
 
 		std::vector<ShaderStage> mShaderStages;
 		std::vector<VkDescriptorSetLayout> mDescriptorSetLayouts;
+		ShaderParameter mShaderParameters;
 
 		friend class ShaderCompiler;
 	};

@@ -500,7 +500,6 @@ namespace Cobalt
 			{
 				lastPipeline = pipeline.GetPipeline();
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
-				pipeline.GetDescriptorSet(frameIndex)->Bind(commandBuffer);
 			}
 
 			vkCmdDrawIndexed(commandBuffer, batch.IndexCount, batch.InstanceCount, batch.FirstIndex, 0, batch.FirstInstance);
@@ -541,7 +540,6 @@ namespace Cobalt
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sData->LightingPassPipeline->GetPipeline());
-		sData->LightingPassPipeline->GetDescriptorSet(frameIndex)->Bind(commandBuffer);
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 		vkCmdEndRenderPass(commandBuffer);
 	}
@@ -603,17 +601,6 @@ namespace Cobalt
 			sData->OcclusionRoughnessMetallicTexture->Recreate(width, height);
 			sData->EmissiveTexture->Recreate(width, height);
 			sData->DepthTexture->Recreate(width, height);
-
-			for (uint32_t i = 0; i < GraphicsContext::Get().GetFrameCount(); i++)
-			{
-				VulkanDescriptorSet* descriptorSet = sData->LightingPassPipeline->GetDescriptorSet(i);
-				descriptorSet->SetImageBinding(*sData->PositionTexture, 1);
-				descriptorSet->SetImageBinding(*sData->BaseColorTexture, 2);
-				descriptorSet->SetImageBinding(*sData->NormalTexture, 3);
-				descriptorSet->SetImageBinding(*sData->OcclusionRoughnessMetallicTexture, 4);
-				descriptorSet->SetImageBinding(*sData->EmissiveTexture, 5);
-				descriptorSet->Update();
-			}
 		}
 	}
 

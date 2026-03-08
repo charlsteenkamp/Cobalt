@@ -223,37 +223,4 @@ namespace Cobalt
 		VK_CALL(vkCreateGraphicsPipelines(GraphicsContext::Get().GetDevice(), VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &mPipeline));
 	}
 
-	std::vector<VulkanDescriptorSet*> Pipeline::AllocateDescriptorSets(VkDescriptorPool descriptorPool, uint32_t set, uint32_t count)
-	{
-		CO_PROFILE_FN();
-
-		std::vector<VkDescriptorSetLayout> descriptorSetLayouts(count);
-
-		for (uint32_t i = 0; i < count; i++)
-		{
-			descriptorSetLayouts[i] = mInfo.Shader.GetDescriptorSetLayouts()[set];
-		}
-
-		VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = descriptorPool,
-			.descriptorSetCount = count,
-			.pSetLayouts = descriptorSetLayouts.data(),
-		};
-
-		std::vector<VkDescriptorSet> descriptorSetHandles(count);
-
-		VK_CALL(vkAllocateDescriptorSets(GraphicsContext::Get().GetDevice(), &descriptorSetAllocInfo, descriptorSetHandles.data()));
-
-		std::vector<VulkanDescriptorSet*> descriptorSets(count);
-
-		for (uint32_t i = 0; i < count; i++)
-		{
-			mDescriptorSets.push_back(std::make_unique<VulkanDescriptorSet>(set, descriptorSetHandles[i], mPipelineLayout));
-			descriptorSets[i] = mDescriptorSets[mDescriptorSets.size() - 1].get();
-		}
-
-		return descriptorSets;
-	}
-
 }

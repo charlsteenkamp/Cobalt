@@ -17,6 +17,8 @@ namespace Cobalt
 		VkDeviceSize LayoutSize        = 0;
 		VkDeviceSize ResourceSetOffset = 0;
 		VkDeviceSize SamplerSetOffset  = 0;
+
+		std::unordered_map<uint32_t, VkDeviceSize> BindingOffsets;
 	};
 
 	using DescriptorHandle = uint32_t;
@@ -39,13 +41,13 @@ namespace Cobalt
 		void WriteDescriptor(const DescriptorBinding& descriptorBinding, DescriptorHandle descriptorHandle);
 
 	private:
-		void WriteBufferDescriptor(DescriptorHandle descriptorHandle, uint32_t binding, uint32_t element, VkDescriptorType descriptorType, size_t descriptorSize, VkDeviceAddress address, VkDeviceSize range);
-		void WriteImageDescriptor(DescriptorHandle descriptorHandle, uint32_t binding, uint32_t element, VkDescriptorType descriptorType, size_t descriptorSize, VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout);
+		void WriteBufferDescriptor(const DescriptorBinding& descriptorBinding, const DescriptorInfo& descriptorInfo, VkDeviceSize bindingOffset, size_t descriptorSize);
+		void WriteImageDescriptor(const DescriptorBinding& descriptorBinding, const DescriptorInfo& descriptorInfo, VkDeviceSize bindingOffset, size_t descriptorSize);
 
 	private:
 		std::vector<DescriptorInfo> mDescriptorInfos;
 
-		std::vector<DescriptorBuffer> mResourceDescriptorBuffers; // per frame-in-flight
+		DescriptorBuffer mResourceDescriptorBuffer;
 		DescriptorBuffer mSamplerDescriptorBuffer;
 
 		VkPhysicalDeviceDescriptorBufferPropertiesEXT mDescriptorBufferProperties;

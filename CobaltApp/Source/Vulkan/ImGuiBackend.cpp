@@ -115,7 +115,7 @@ namespace Cobalt
 				.QueueFamily = (uint32_t)graphicsContext.GetQueueFamily(),
 				.Queue = graphicsContext.GetQueue(),
 				.PipelineCache = VK_NULL_HANDLE,
-				.DescriptorPool = graphicsContext.GetDescriptorPool(),
+//				.DescriptorPool = graphicsContext.GetDescriptorPool(),
 				.Subpass = 0,
 				.MinImageCount = graphicsContext.GetSwapchain().GetBackBufferCount(),
 				.ImageCount = graphicsContext.GetSwapchain().GetBackBufferCount(),
