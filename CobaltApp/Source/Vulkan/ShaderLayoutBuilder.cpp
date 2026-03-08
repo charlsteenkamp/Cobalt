@@ -143,7 +143,6 @@ namespace Cobalt
 
 				ShaderParameter shaderParameter;
 				shaderParameter.Kind = SlangUtils::SlangBindingTypeToShaderParameterKind(slangDescriptorType);
-				shaderParameter.Set = descriptorSetIndex;
 				shaderParameter.Binding = descriptorSetLayoutBinding.binding;
 				shaderParameter.UniformByteOffset = variableLayout->getOffset();
 				shaderParameter.UniformSize = typeLayout->getSize();
@@ -206,6 +205,7 @@ namespace Cobalt
 			const DescriptorSetInfo& descriptorSetInfo = mDescriptorSetInfos[mDescriptorSpaceIndexMap.at(set)];
 			std::vector<VkDescriptorBindingFlags> descriptorBindingFlags((uint32_t)descriptorSetInfo.Bindings.size());
 
+#if 0
 			for (uint32_t i = 0; i < descriptorBindingFlags.size(); i++)
 			{
 				const VkDescriptorSetLayoutBinding& binding = descriptorSetInfo.Bindings[i];
@@ -218,6 +218,7 @@ namespace Cobalt
 					descriptorBindingFlags[i] = 0;
 				}
 			}
+#endif
 
 			VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlagsCreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
@@ -228,7 +229,7 @@ namespace Cobalt
 			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 				.pNext = &descriptorSetLayoutBindingFlagsCreateInfo,
-				.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT | VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT,
+				.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT,
 				.bindingCount = (uint32_t)descriptorSetInfo.Bindings.size(),
 				.pBindings = descriptorSetInfo.Bindings.data(),
 			};

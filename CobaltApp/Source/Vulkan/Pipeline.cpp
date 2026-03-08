@@ -202,7 +202,7 @@ namespace Cobalt
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-			.flags = 0,
+			.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT,
 			.stageCount = (uint32_t)shaderStageCreateInfos.size(),
 			.pStages = shaderStageCreateInfos.data(),
 			.pVertexInputState = &vertexInputStateCreateInfo,

@@ -34,20 +34,17 @@ namespace Cobalt
 		// Setup Vulkan Instance
 
 		{
-			uint32_t extensionCount = 0;
-			const char** requiredExtensions = glfwGetRequiredInstanceExtensions(&extensionCount);
-			const char** extensions;
+			uint32_t requiredExtensionCount = 0;
+			const char** requiredExtensions = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
+
+			std::vector<const char*> extensions(requiredExtensionCount);
+			memcpy(extensions.data(), requiredExtensions, requiredExtensionCount * sizeof(const char*));
+
+			extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
 			if (mEnableValidationLayers)
 			{
-				extensionCount++;
-				extensions = (const char**)malloc(sizeof(const char*) * extensionCount);
-				memcpy(extensions, requiredExtensions, extensionCount * sizeof(const char*));
-				extensions[extensionCount - 1] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
-			}
-			else
-			{
-				extensions = requiredExtensions;
+				extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 			}
 
 			const char* layers[] = { "VK_LAYER_KHRONOS_validation" };
@@ -65,8 +62,8 @@ namespace Cobalt
 				.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 				.flags = 0,
 				.pApplicationInfo = &applicationInfo,
-				.enabledExtensionCount = extensionCount,
-				.ppEnabledExtensionNames = extensions
+				.enabledExtensionCount = (uint32_t)extensions.size(),
+				.ppEnabledExtensionNames = extensions.data()
 			};
 
 			if (mEnableValidationLayers)
@@ -74,18 +71,8 @@ namespace Cobalt
 				instanceCreateInfo.ppEnabledLayerNames = layers;
 				instanceCreateInfo.enabledLayerCount = 1;
 			}
-			else
-			{
-				instanceCreateInfo.enabledExtensionCount = extensionCount;
-				instanceCreateInfo.ppEnabledExtensionNames = extensions;
-			}
 
 			VK_CALL(vkCreateInstance(&instanceCreateInfo, nullptr, &mInstance));
-
-			if (mEnableValidationLayers)
-			{
-				free(extensions);
-			}
 		}
 
 		// Create debug utils messenger
@@ -326,9 +313,6 @@ namespace Cobalt
 			}
 		}
 
-		mDescriptorBufferManager = std::make_unique<DescriptorBufferManager>();
-		mDescriptorCache = std::make_unique<DescriptorCache>(*mDescriptorBufferManager);
-
 		// Initialize VMA
 
 		{
@@ -342,6 +326,9 @@ namespace Cobalt
 
 			VK_CALL(vmaCreateAllocator(&allocatorCreateInfo, &mAllocator));
 		}
+
+		mDescriptorBufferManager = std::make_unique<DescriptorBufferManager>();
+		mDescriptorCache = std::make_unique<DescriptorCache>(*mDescriptorBufferManager);
 
 		OPTICK_GPU_INIT_VULKAN(&mDevice, &mPhysicalDevice, &mQueue, (uint32_t*)&mQueueFamily, 2, nullptr);
 	}

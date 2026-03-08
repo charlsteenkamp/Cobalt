@@ -24,7 +24,6 @@ namespace Cobalt
 	{
 		ShaderParameterKind Kind = ShaderParameterKind::None;
 
-		uint32_t Set = 0;
 		uint32_t Binding = 0;
 
 		size_t UniformByteOffset = 0;          // If it's a uniform

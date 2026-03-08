@@ -6,7 +6,7 @@
 namespace Cobalt
 {
 
-	ShaderCursor::ShaderCursor(const ShaderParameter& shaderParameter, DescriptorBindings& descriptorBindings, DescriptorHandle descriptorHandle)
+	ShaderCursor::ShaderCursor(ShaderParameter& shaderParameter, DescriptorBindings& descriptorBindings, DescriptorHandle descriptorHandle)
 		: mShaderParameter(shaderParameter), mDescriptorBindings(descriptorBindings), mDescriptorHandle(descriptorHandle)
 	{
 		CO_PROFILE_FN();

@@ -14,14 +14,10 @@ namespace Cobalt
 	{
 		VkDescriptorSetLayout Layout   = VK_NULL_HANDLE;
 
-		VkDeviceSize LayoutSize        = 0;
-		VkDeviceSize ResourceSetOffset = -1;
-		VkDeviceSize SamplerSetOffset  = -1;
+		VkDeviceSize LayoutSize = 0;
+		VkDeviceSize SetOffset = 0;
 
 		std::unordered_map<uint32_t, VkDeviceSize> BindingOffsets;
-
-		bool IsResourceDescriptor() const { return ResourceSetOffset != -1; }
-		bool IsSamplerDescriptor()  const { return SamplerSetOffset  != -1; }
 	};
 
 	using DescriptorHandle = uint32_t;
@@ -47,16 +43,10 @@ namespace Cobalt
 		void SetDescriptorBufferOffsets(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, DescriptorHandle descriptorHandle);
 
 	private:
-		void WriteBufferDescriptor(const DescriptorBinding& descriptorBinding, const DescriptorInfo& descriptorInfo, VkDeviceSize bindingOffset, size_t descriptorSize);
-		void WriteImageDescriptor(const DescriptorBinding& descriptorBinding, const DescriptorInfo& descriptorInfo, VkDeviceSize bindingOffset, size_t descriptorSize);
-
-	private:
 		std::vector<DescriptorInfo> mDescriptorInfos;
+		DescriptorBuffer mDescriptorBuffer;
 
-		DescriptorBuffer mResourceDescriptorBuffer;
-		DescriptorBuffer mSamplerDescriptorBuffer;
-
-		VkPhysicalDeviceDescriptorBufferPropertiesEXT mDescriptorBufferProperties;
+		VkPhysicalDeviceDescriptorBufferPropertiesEXT mDescriptorBufferProperties{};
 
 		PFN_vkGetDescriptorSetLayoutSizeEXT          vkGetDescriptorSetLayoutSizeEXT;
 		PFN_vkGetDescriptorSetLayoutBindingOffsetEXT vkGetDescriptorSetLayoutBindingOffsetEXT;

@@ -35,12 +35,10 @@ float4 FSMain(VSOutput input, uniform ConstantBuffer<Scene> scene, uniform GBuff
 {
 	float3 fragPosition = gBuffers.SamplerPosition.Sample(input.UV).xyz;
 	float3 occlusionRoughnessMetallic = gBuffers.SamplerOcclusionRoughnessMetallic.Sample(input.UV).xyz;
-	float3 fragPosition = gBuffers.SamplerPosition.Sample(input.UV).xyz;
-	float3 occlusionRoughnessMetallic = gBuffers.SamplerOcclusionRoughnessMetallic.Sample(input.UV).xyz;
 
 	Material material;
-	material.BaseColor = gBuffers.SamplerBaseColor.Sample(coarseVertex.UV);
-	material.Normal    = gBuffers.SamplerNormal.Sample(coarseVertex.UV).xyz;
+	material.BaseColor = gBuffers.SamplerBaseColor.Sample(input.UV);
+	material.Normal    = gBuffers.SamplerNormal.Sample(input.UV).xyz;
 	material.Occlusion = occlusionRoughnessMetallic.x;
 	material.Roughness = occlusionRoughnessMetallic.y;
 	material.Metallic  = occlusionRoughnessMetallic.z;

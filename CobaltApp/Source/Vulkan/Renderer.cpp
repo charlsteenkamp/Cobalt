@@ -255,9 +255,9 @@ namespace Cobalt
 
 			for (uint32_t i = 0; i < frameCount; i++)
 			{
-				sData->SceneDataUniformBuffers[i]    = VulkanBuffer::CreateMappedBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-				sData->ObjectStorageBuffers[i]       = VulkanBuffer::CreateMappedBuffer(sData->sMaxObjectCount * sizeof(ObjectData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-				sData->MaterialDataStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxMaterialCount * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+				sData->SceneDataUniformBuffers[i]    = VulkanBuffer::CreateMappedBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
+				sData->ObjectStorageBuffers[i]       = VulkanBuffer::CreateMappedBuffer(sData->sMaxObjectCount * sizeof(ObjectData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
+				sData->MaterialDataStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxMaterialCount * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 			}
 
 			sData->DrawCalls.reserve(sData->sMaxObjectCount);
@@ -291,6 +291,7 @@ namespace Cobalt
 		sData->GeometryPassPipeline = std::make_unique<Pipeline>(geometryPassPipelineInfo, sData->GeometryRenderPass);
 
 		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
+		sData->GeometryPassDescriptorHandles.resize(frameCount);
 
 		for (uint32_t i = 0; i < frameCount; i++)
 		{
@@ -309,6 +310,8 @@ namespace Cobalt
 		};
 
 		sData->LightingPassPipeline = std::make_unique<Pipeline>(lightingPassPipelineInfo, sData->LightingRenderPass);
+
+		sData->LightingPassDescriptorHandles.resize(frameCount);
 
 		for (uint32_t i = 0; i < frameCount; i++)
 		{
@@ -470,7 +473,14 @@ namespace Cobalt
 		sceneDataUniformBuffer.CopyData(&sData->ActiveScene);
 		objectsStorageBuffer.CopyData(sData->Objects.data(), sData->Objects.size() * sizeof(ObjectData));
 
-		const ShaderParameter& geometryPassShaderParameter = sData->Shaders->GetShader(sData->GeometryPassShaderHandle)->GetShaderParameters();
+		//const ShaderParameter& geometryPassShaderParameter = sData->Shaders->GetShader(sData->GeometryPassShaderHandle)->GetShaderParameters();
+
+		ShaderParameter geometryPassShaderParameter;
+		geometryPassShaderParameter.Fields["scene"].Binding = 0;
+		geometryPassShaderParameter.Fields["objects"].Binding = 1;
+		geometryPassShaderParameter.Fields["materials"].Binding = 2;
+		geometryPassShaderParameter.Fields["textures"].Binding = 3;
+
 		DescriptorHandle geometryPassDescriptorHandle = sData->GeometryPassDescriptorHandles[frameIndex];
 
 		DescriptorBindings geometryPassDescriptorBindings;
@@ -514,7 +524,20 @@ namespace Cobalt
 
 		// Begin lighting pass
 
-		const ShaderParameter& lightingPassShaderParameter = sData->Shaders->GetShader(sData->LightingPassDescriptorHandles[frameIndex])->GetShaderParameters();
+		//const ShaderParameter& lightingPassShaderParameter = sData->Shaders->GetShader(sData->LightingPassDescriptorHandles[frameIndex])->GetShaderParameters();
+		// TEMPORARY
+		ShaderParameter lightingPassShaderParameter;
+
+		ShaderParameter gBuffer;
+		gBuffer.Fields["SamplerPosition"].Binding = 1;
+		gBuffer.Fields["SamplerBaseColor"].Binding = 2;
+		gBuffer.Fields["SamplerNormal"].Binding = 3;
+		gBuffer.Fields["SamplerOcclusionRoughnessMetallic"].Binding = 4;
+		gBuffer.Fields["SamplerEmissive"].Binding = 5;
+
+		lightingPassShaderParameter.Fields["scene"].Binding = 0;
+		lightingPassShaderParameter.Fields["gBuffers"] = gBuffer;
+
 		DescriptorHandle lightingPassDescriptorHandle = sData->LightingPassDescriptorHandles[frameIndex];
 
 		DescriptorBindings lightingPassDescriptorBindings;
