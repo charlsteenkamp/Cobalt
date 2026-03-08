@@ -458,6 +458,9 @@ namespace Cobalt
 
 		// Render objects
 
+		DescriptorBufferManager& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
+		descriptorBufferManager.BindDescriptorBuffers(commandBuffer);
+
 		uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
 
 		VulkanBuffer& sceneDataUniformBuffer = *sData->SceneDataUniformBuffers[frameIndex];
@@ -468,10 +471,11 @@ namespace Cobalt
 		objectsStorageBuffer.CopyData(sData->Objects.data(), sData->Objects.size() * sizeof(ObjectData));
 
 		const ShaderParameter& geometryPassShaderParameter = sData->Shaders->GetShader(sData->GeometryPassShaderHandle)->GetShaderParameters();
+		DescriptorHandle geometryPassDescriptorHandle = sData->GeometryPassDescriptorHandles[frameIndex];
 
 		DescriptorBindings geometryPassDescriptorBindings;
 		
-		ShaderCursor geometryPassShaderCursor(geometryPassShaderParameter, geometryPassDescriptorBindings, sData->GeometryPassDescriptorHandles[frameIndex]);
+		ShaderCursor geometryPassShaderCursor(geometryPassShaderParameter, geometryPassDescriptorBindings, geometryPassDescriptorHandle);
 		geometryPassShaderCursor.Field("scene").Write(sceneDataUniformBuffer);
 		geometryPassShaderCursor.Field("objects").Write(objectsStorageBuffer);
 		geometryPassShaderCursor.Field("materials").Write(materialsStorageBuffer);
@@ -500,6 +504,7 @@ namespace Cobalt
 			{
 				lastPipeline = pipeline.GetPipeline();
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
+				descriptorBufferManager.SetDescriptorBufferOffsets(commandBuffer, pipeline.GetPipelineLayout(), geometryPassDescriptorHandle);
 			}
 
 			vkCmdDrawIndexed(commandBuffer, batch.IndexCount, batch.InstanceCount, batch.FirstIndex, 0, batch.FirstInstance);
@@ -510,9 +515,11 @@ namespace Cobalt
 		// Begin lighting pass
 
 		const ShaderParameter& lightingPassShaderParameter = sData->Shaders->GetShader(sData->LightingPassDescriptorHandles[frameIndex])->GetShaderParameters();
+		DescriptorHandle lightingPassDescriptorHandle = sData->LightingPassDescriptorHandles[frameIndex];
+
 		DescriptorBindings lightingPassDescriptorBindings;
 
-		ShaderCursor lightingPassShaderCursor(lightingPassShaderParameter, lightingPassDescriptorBindings, sData->LightingPassDescriptorHandles[frameIndex]);
+		ShaderCursor lightingPassShaderCursor(lightingPassShaderParameter, lightingPassDescriptorBindings, lightingPassDescriptorHandle);
 		lightingPassShaderCursor.Field("scene").Write(sceneDataUniformBuffer);
 		lightingPassShaderCursor.Field("gBuffers")
 			.WriteField("SamplerPosition", *sData->PositionTexture)
@@ -540,6 +547,7 @@ namespace Cobalt
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sData->LightingPassPipeline->GetPipeline());
+		descriptorBufferManager.SetDescriptorBufferOffsets(commandBuffer, sData->LightingPassPipeline->GetPipelineLayout(), lightingPassDescriptorHandle);
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 		vkCmdEndRenderPass(commandBuffer);
 	}

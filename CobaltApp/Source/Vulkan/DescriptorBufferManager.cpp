@@ -14,16 +14,25 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
+		VkDevice device = GraphicsContext::Get().GetDevice();
+
+		vkGetDescriptorSetLayoutSizeEXT          = (PFN_vkGetDescriptorSetLayoutSizeEXT)vkGetDeviceProcAddr(device, "vkGetDescriptorSetLayoutSizeEXT");
+		vkGetDescriptorSetLayoutBindingOffsetEXT = (PFN_vkGetDescriptorSetLayoutBindingOffsetEXT)vkGetDeviceProcAddr(device, "vkGetDescriptorSetLayoutBindingOffsetEXT");
+		vkGetDescriptorEXT                       = (PFN_vkGetDescriptorEXT)vkGetDeviceProcAddr(device, "vkGetDescriptorEXT");
+		vkCmdBindDescriptorBuffersEXT            = (PFN_vkCmdBindDescriptorBuffersEXT)vkGetDeviceProcAddr(device, "vkCmdBindDescriptorBuffersEXT");
+		vkCmdSetDescriptorBufferOffsetsEXT       = (PFN_vkCmdSetDescriptorBufferOffsetsEXT)vkGetDeviceProcAddr(device, "vkCmdSetDescriptorBufferOffsetsEXT");
+
+
 		VkPhysicalDeviceProperties2KHR physicalDeviceProperties = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR,
 			.pNext = (void*)&mDescriptorBufferProperties
 		};
 			
+		auto vkGetPhysicalDeviceProperties2KHR = (PFN_vkGetPhysicalDeviceProperties2KHR)vkGetDeviceProcAddr(device, "vkGetPhysicalDeviceProperties2KHR");
 		vkGetPhysicalDeviceProperties2KHR(GraphicsContext::Get().GetPhysicalDevice(), &physicalDeviceProperties);
 
 		uint32_t resourceDescriptorBufferSize = 0;
 		uint32_t samplerDescriptorBufferSize = 0;
-
 
 		mResourceDescriptorBuffer.Buffer = VulkanBuffer::CreateMappedBuffer(resourceDescriptorBufferSize, VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 		mSamplerDescriptorBuffer.Buffer  = VulkanBuffer::CreateMappedBuffer(samplerDescriptorBufferSize, VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
@@ -137,4 +146,52 @@ namespace Cobalt
 		vkGetDescriptorEXT(GraphicsContext::Get().GetDevice(), &descriptorGetInfo, descriptorSize, bindingPtr);
 	}
 
+	void DescriptorBufferManager::BindDescriptorBuffers(VkCommandBuffer commandBuffer)
+	{
+		CO_PROFILE_FN();
+
+		VkDescriptorBufferBindingInfoEXT descriptorBufferBindingInfos[2];
+
+		descriptorBufferBindingInfos[0] = {
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+			.address = mResourceDescriptorBuffer.Buffer->GetDeviceAddress(),
+			.usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+		};
+		descriptorBufferBindingInfos[1] = {
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+			.address = mSamplerDescriptorBuffer.Buffer->GetDeviceAddress(),
+			.usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+		};
+
+		vkCmdBindDescriptorBuffersEXT(commandBuffer, 2, descriptorBufferBindingInfos);
+	}
+
+	void DescriptorBufferManager::SetDescriptorBufferOffsets(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, DescriptorHandle descriptorHandle)
+	{
+		CO_PROFILE_FN();
+
+		DescriptorInfo descriptorInfo = mDescriptorInfos[descriptorHandle];
+
+		uint32_t     bufferIndices[2];
+		VkDeviceSize bufferOffsets[2];
+
+		uint32_t count = 0;
+
+		if (descriptorInfo.IsResourceDescriptor())
+		{
+			bufferIndices[count] = 0;
+			bufferOffsets[count] = descriptorInfo.ResourceSetOffset;
+			count++;
+		}
+
+		if (descriptorInfo.IsSamplerDescriptor())
+		{
+			bufferIndices[count] = 1;
+			bufferIndices[count] = descriptorInfo.SamplerSetOffset;
+			count++;
+		}
+
+		vkCmdSetDescriptorBufferOffsetsEXT(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, count, bufferIndices, bufferOffsets);
+	}
+	
 }
