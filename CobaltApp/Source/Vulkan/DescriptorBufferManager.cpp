@@ -33,7 +33,7 @@ namespace Cobalt
 		auto vkGetPhysicalDeviceProperties2KHR = (PFN_vkGetPhysicalDeviceProperties2KHR)vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2KHR");
 		vkGetPhysicalDeviceProperties2KHR(GraphicsContext::Get().GetPhysicalDevice(), &physicalDeviceProperties);
 
-		uint32_t descriptorBufferSize = 100000;
+		uint32_t descriptorBufferSize = 1000000;
 
 		mDescriptorBuffer.Buffer = VulkanBuffer::CreateMappedBuffer(descriptorBufferSize, VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 	}
@@ -176,7 +176,7 @@ namespace Cobalt
 		descriptorBufferBindingInfos[0] = {
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
 			.address = mDescriptorBuffer.Buffer->GetDeviceAddress(),
-			.usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+			.usage = VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT | VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
 		};
 
 		vkCmdBindDescriptorBuffersEXT(commandBuffer, 1, descriptorBufferBindingInfos);
