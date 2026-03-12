@@ -70,4 +70,25 @@ namespace Cobalt::SlangUtils
 		}
 	}
 
+	inline ShaderParameterKind SlangTypeReflectionKindToShaderParameterKind(slang::TypeReflection::Kind kind)
+	{
+		switch (kind)
+		{
+			case slang::TypeReflection::Kind::Struct: return ShaderParameterKind::None;
+			case slang::TypeReflection::Kind::Matrix: return ShaderParameterKind::Matrix;
+			case slang::TypeReflection::Kind::Vector: return ShaderParameterKind::Vector;
+			case slang::TypeReflection::Kind::Scalar: return ShaderParameterKind::Scalar;
+			case slang::TypeReflection::Kind::Array: return ShaderParameterKind::Array;
+			case slang::TypeReflection::Kind::ConstantBuffer: return ShaderParameterKind::UniformBuffer;
+			case slang::TypeReflection::Kind::Resource: return ShaderParameterKind::StorageBuffer;
+			case slang::TypeReflection::Kind::SamplerState: return ShaderParameterKind::Sampler;
+			case slang::TypeReflection::Kind::TextureBuffer: 
+			case slang::TypeReflection::Kind::ShaderStorageBuffer: return ShaderParameterKind::StorageBuffer;
+			case slang::TypeReflection::Kind::ParameterBlock: return ShaderParameterKind::UniformBuffer;
+			case slang::TypeReflection::Kind::None:
+			default: return ShaderParameterKind::None;
+		}
+
+	}
+
 }

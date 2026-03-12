@@ -77,7 +77,7 @@ namespace Cobalt
 		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return mDescriptorSetLayouts; }
 		const std::vector<VkPushConstantRange>& GetPushConstantRanges() const { return mPushConstantRanges; }
 
-		const ShaderParameterMap& GetShaderParameters() const { return mShaderParameters; }
+		const ShaderParameter& GetRootShaderParameter() const { return mRootShaderParam; }
 
 	private:
 		void AddGlobalBindings(slang::VariableLayoutReflection* globalVarLayout);
@@ -88,6 +88,8 @@ namespace Cobalt
 		void AddConstantBufferDescriptorBindings(slang::TypeLayoutReflection* elementTypeLayout, BindingOffset containerOffset, BindingOffset elementOffset);
 		void AddPushConstantRange(slang::TypeLayoutReflection* elementTypeLayout, BindingOffset containerOffset, BindingOffset elementOffset);
 
+		void AddShaderParameters(slang::VariableLayoutReflection* varLayout, ShaderParameter& shaderParameter, uint32_t bindingOffset = 0, uint32_t uniformByteOffset = 0);
+
 		int32_t FindOrAddDescriptorSet(int32_t space);
 
 	private:
@@ -96,7 +98,7 @@ namespace Cobalt
 		std::vector<DescriptorSetInfo> mDescriptorSetInfos;
 		std::unordered_map<int32_t, int32_t> mDescriptorSpaceIndexMap; // space - index into mDescriptorSetInfos
 		
-		ShaderParameterMap mShaderParameters;
+		ShaderParameter mRootShaderParam;
 	};
 
 }

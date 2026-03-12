@@ -47,6 +47,7 @@ namespace Cobalt
 		ShaderLayoutBuilder layoutBuilder(mLinkedProgram->getLayout());
 
 		mDescriptorSetLayouts = layoutBuilder.GetDescriptorSetLayouts();
+		mRootShaderParam = layoutBuilder.GetRootShaderParameter();
 	}
 
 }

@@ -473,16 +473,8 @@ namespace Cobalt
 		sceneDataUniformBuffer.CopyData(&sData->ActiveScene);
 		objectsStorageBuffer.CopyData(sData->Objects.data(), sData->Objects.size() * sizeof(ObjectData));
 
-		//const ShaderParameter& geometryPassShaderParameter = sData->Shaders->GetShader(sData->GeometryPassShaderHandle)->GetShaderParameters();
-
-		ShaderParameter geometryPassShaderParameter;
-		geometryPassShaderParameter.Fields["scene"].Binding = 0;
-		geometryPassShaderParameter.Fields["objects"].Binding = 1;
-		geometryPassShaderParameter.Fields["materials"].Binding = 2;
-		geometryPassShaderParameter.Fields["textures"].Binding = 3;
-
+		ShaderParameter& geometryPassShaderParameter = sData->Shaders->GetShader(sData->GeometryPassShaderHandle)->GetRootShaderParameter();
 		DescriptorHandle geometryPassDescriptorHandle = sData->GeometryPassDescriptorHandles[frameIndex];
-
 		DescriptorBindings geometryPassDescriptorBindings;
 		
 		ShaderCursor geometryPassShaderCursor(geometryPassShaderParameter, geometryPassDescriptorBindings, geometryPassDescriptorHandle);
@@ -524,22 +516,8 @@ namespace Cobalt
 
 		// Begin lighting pass
 
-		//const ShaderParameter& lightingPassShaderParameter = sData->Shaders->GetShader(sData->LightingPassDescriptorHandles[frameIndex])->GetShaderParameters();
-		// TEMPORARY
-		ShaderParameter lightingPassShaderParameter;
-
-		ShaderParameter gBuffer;
-		gBuffer.Fields["SamplerPosition"].Binding = 1;
-		gBuffer.Fields["SamplerBaseColor"].Binding = 2;
-		gBuffer.Fields["SamplerNormal"].Binding = 3;
-		gBuffer.Fields["SamplerOcclusionRoughnessMetallic"].Binding = 4;
-		gBuffer.Fields["SamplerEmissive"].Binding = 5;
-
-		lightingPassShaderParameter.Fields["scene"].Binding = 0;
-		lightingPassShaderParameter.Fields["gBuffers"] = gBuffer;
-
+		ShaderParameter& lightingPassShaderParameter = sData->Shaders->GetShader(sData->LightingPassShaderHandle)->GetRootShaderParameter();
 		DescriptorHandle lightingPassDescriptorHandle = sData->LightingPassDescriptorHandles[frameIndex];
-
 		DescriptorBindings lightingPassDescriptorBindings;
 
 		ShaderCursor lightingPassShaderCursor(lightingPassShaderParameter, lightingPassDescriptorBindings, lightingPassDescriptorHandle);

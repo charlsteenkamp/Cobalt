@@ -47,11 +47,13 @@ namespace Cobalt
 				case slang::TypeReflection::Kind::ParameterBlock:
 				{
 					globalTypeLayout = globalTypeLayout->getElementTypeLayout();
+					mRootShaderParam.Kind = ShaderParameterKind::UniformBuffer;
 					break;
 				}
 				default:
 				{
 					foundFinalType = true;
+					mRootShaderParam.Kind = ShaderParameterKind::None;
 					break;
 				}
 			}
@@ -60,13 +62,16 @@ namespace Cobalt
 		BindingOffset bindingOffset(globalVarLayout);
 
 		AddDescriptorBindings(globalTypeLayout, bindingOffset);
+		AddShaderParameters(globalVarLayout, mRootShaderParam, bindingOffset.Binding, 0);
 	}
 
 	void ShaderLayoutBuilder::AddEntryPoint(slang::EntryPointLayout* entryPointLayout)
 	{
-		BindingOffset entryPointOffset(entryPointLayout->getVarLayout());
+		slang::VariableLayoutReflection* varLayout = entryPointLayout->getVarLayout();
+		BindingOffset entryPointOffset(varLayout);
 
 		AddDescriptorBindings(entryPointLayout->getTypeLayout(), entryPointOffset);
+		AddShaderParameters(varLayout, mRootShaderParam, varLayout->getOffset(SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT), varLayout->getOffset());
 	}
 
 	void ShaderLayoutBuilder::AddDescriptorBindings(slang::TypeLayoutReflection* typeLayout, BindingOffset bindingOffset)
@@ -140,13 +145,6 @@ namespace Cobalt
 				descriptorSetInfo.AddBinding(descriptorSetLayoutBinding);
 
 				slang::VariableLayoutReflection* variableLayout = typeLayout->getContainerVarLayout();
-
-				ShaderParameter shaderParameter;
-				shaderParameter.Kind = SlangUtils::SlangBindingTypeToShaderParameterKind(slangDescriptorType);
-				shaderParameter.Binding = descriptorSetLayoutBinding.binding;
-				shaderParameter.UniformByteOffset = variableLayout->getOffset();
-				shaderParameter.UniformSize = typeLayout->getSize();
-				shaderParameter.ElementStride = typeLayout->getStride();
 			}
 		}
 
@@ -175,7 +173,7 @@ namespace Cobalt
 
 					BindingOffset containerOffset = subObjectRangeOffset + BindingOffset(containerVarLayout);
 					BindingOffset elementOffset   = subObjectRangeOffset + BindingOffset(elementVarLayout);
-					
+				
 					AddConstantBufferDescriptorBindings(elementVarLayout->getTypeLayout(), containerOffset, elementOffset);
 
 					break;
@@ -260,6 +258,97 @@ namespace Cobalt
 	void ShaderLayoutBuilder::AddPushConstantRange(slang::TypeLayoutReflection* elementTypeLayout, BindingOffset containerOffset, BindingOffset elementOffset)
 	{
 		// TODO
+	}
+
+	void ShaderLayoutBuilder::AddShaderParameters(slang::VariableLayoutReflection* varLayout, ShaderParameter& shaderParameter, uint32_t bindingOffset, uint32_t uniformByteOffset)
+	{
+		CO_PROFILE_FN();
+
+		slang::TypeLayoutReflection* typeLayout = varLayout->getTypeLayout();
+		slang::VariableLayoutReflection* containerVarLayout = typeLayout->getContainerVarLayout();
+		slang::VariableLayoutReflection* elementVarLayout = typeLayout->getElementVarLayout();
+		slang::TypeLayoutReflection* elementTypeLayout = elementVarLayout->getTypeLayout();
+
+		if (typeLayout->getKind() != slang::TypeReflection::Kind::Struct)
+		{
+			shaderParameter.Kind = SlangUtils::SlangTypeReflectionKindToShaderParameterKind(typeLayout->getKind());
+			shaderParameter.Binding = bindingOffset + varLayout->getOffset(SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT);
+			shaderParameter.UniformByteOffset = uniformByteOffset + varLayout->getOffset();
+		}
+
+		switch (typeLayout->getKind())
+		{
+			case slang::TypeReflection::Kind::Matrix:
+			case slang::TypeReflection::Kind::Vector:
+			case slang::TypeReflection::Kind::Scalar:
+			{
+				shaderParameter.UniformSize = typeLayout->getSize();
+				break;
+			}
+			case slang::TypeReflection::Kind::Array:
+			{
+				shaderParameter.ElementKind = SlangUtils::SlangTypeReflectionKindToShaderParameterKind(elementTypeLayout->getKind());
+				shaderParameter.ElementStride = typeLayout->getElementStride(SLANG_PARAMETER_CATEGORY_UNIFORM);
+
+				uint32_t elementCount = typeLayout->getElementCount();
+
+				if (elementCount == SLANG_UNBOUNDED_SIZE)
+					break;
+
+				shaderParameter.Elements.resize(elementCount);
+
+				for (uint32_t i = 0; i < elementCount; i++)
+				{
+					shaderParameter.Elements[i] = ShaderParameter {
+						.Kind = SlangUtils::SlangTypeReflectionKindToShaderParameterKind(elementTypeLayout->getKind()),
+						.Binding = shaderParameter.Binding,
+						.UniformByteOffset = uniformByteOffset + i * shaderParameter.ElementStride,
+						.Index = i,
+					};
+				}
+
+				break;
+			}
+			case slang::TypeReflection::Kind::ConstantBuffer:
+			case slang::TypeReflection::Kind::ParameterBlock:
+			{
+				shaderParameter.UniformSize = elementTypeLayout->getSize();
+
+				AddShaderParameters(elementVarLayout, shaderParameter, shaderParameter.Binding, shaderParameter.UniformByteOffset);
+				break;
+			}
+			case slang::TypeReflection::Kind::Struct:
+			{
+				uint32_t fieldCount = typeLayout->getFieldCount();
+				uint32_t localBindingOffset = bindingOffset + shaderParameter.Binding;
+				uint32_t localUniformByteOffset = uniformByteOffset + shaderParameter.UniformByteOffset;
+
+				for (uint32_t i = 0; i < fieldCount; i++)
+				{
+					slang::VariableLayoutReflection* fieldVarLayout  = typeLayout->getFieldByIndex(i);
+					slang::TypeLayoutReflection* fieldTypeLayout  = fieldVarLayout->getTypeLayout();
+
+					slang::ParameterCategory parameterCategory = fieldTypeLayout->getParameterCategory();
+
+					if (parameterCategory == SLANG_PARAMETER_CATEGORY_VARYING_INPUT ||
+						parameterCategory == SLANG_PARAMETER_CATEGORY_VARYING_OUTPUT ||
+						parameterCategory == SLANG_PARAMETER_CATEGORY_NONE)
+						continue;
+
+					if (fieldVarLayout->getTypeLayout()->getKind() == slang::TypeReflection::Kind::Struct)
+					{
+						localBindingOffset += fieldVarLayout->getOffset(SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT);
+						localUniformByteOffset += fieldVarLayout->getOffset();
+					}
+
+					shaderParameter.Fields[fieldVarLayout->getName()] = {};
+
+					AddShaderParameters(fieldVarLayout, shaderParameter.Fields[fieldVarLayout->getName()], localBindingOffset, localUniformByteOffset);
+				}
+				
+				break;
+			}
+		}
 	}
 
 	int32_t ShaderLayoutBuilder::FindOrAddDescriptorSet(int32_t space)

@@ -32,7 +32,7 @@ namespace Cobalt
 		const std::vector<ShaderStage>& GetShaderStages() const { return mShaderStages; }
 		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() const { return mDescriptorSetLayouts; }
 
-		const ShaderParameter& GetShaderParameters() const { return mShaderParameters; }
+		ShaderParameter& GetRootShaderParameter() { return mRootShaderParam; }
 
 	private:
 		void InitShaderStages();
@@ -43,7 +43,7 @@ namespace Cobalt
 
 		std::vector<ShaderStage> mShaderStages;
 		std::vector<VkDescriptorSetLayout> mDescriptorSetLayouts;
-		ShaderParameter mShaderParameters;
+		ShaderParameter mRootShaderParam;
 
 		friend class ShaderCompiler;
 	};

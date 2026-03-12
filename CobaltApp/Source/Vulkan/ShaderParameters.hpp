@@ -8,13 +8,17 @@ namespace Cobalt
 	enum class ShaderParameterKind 
 	{
 		None = -1,
+		Array,
 		UniformBuffer,
 		StorageBuffer,
 		Sampler,
 		SampledImage,
 		CombinedImageSampler,
 		StorageImage,
-		InputAttachment
+		InputAttachment,
+		Matrix,
+		Vector,
+		Scalar
 	};
 
 	struct ShaderParameter;
@@ -23,6 +27,7 @@ namespace Cobalt
 	struct ShaderParameter
 	{
 		ShaderParameterKind Kind = ShaderParameterKind::None;
+		ShaderParameterKind ElementKind = ShaderParameterKind::None;
 
 		uint32_t Binding = 0;
 
