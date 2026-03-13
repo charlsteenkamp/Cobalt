@@ -70,19 +70,38 @@ namespace Cobalt::SlangUtils
 		}
 	}
 
-	inline ShaderParameterKind SlangTypeReflectionKindToShaderParameterKind(slang::TypeReflection::Kind kind)
+	inline ShaderParameterKind SlangResourceShapeToShaderParameterKind(SlangResourceShape shape)
 	{
+		switch (shape & SLANG_RESOURCE_BASE_SHAPE_MASK)
+		{
+			case SLANG_STRUCTURED_BUFFER: return ShaderParameterKind::StorageBuffer;
+			case SLANG_TEXTURE_SUBPASS:   return ShaderParameterKind::InputAttachment;
+			case SLANG_TEXTURE_2D:
+			{
+				if (shape & SLANG_TEXTURE_COMBINED_FLAG)
+					return ShaderParameterKind::CombinedImageSampler;
+
+				return ShaderParameterKind::SampledImage;
+			}
+		}
+
+		return ShaderParameterKind::StorageImage;
+	}
+
+	inline ShaderParameterKind SlangTypeLayoutToShaderParameterKind(slang::TypeLayoutReflection* typeLayout)
+	{
+		slang::TypeReflection::Kind kind = typeLayout->getKind();
+
 		switch (kind)
 		{
+			case slang::TypeReflection::Kind::Resource: return SlangResourceShapeToShaderParameterKind(typeLayout->getResourceShape());
 			case slang::TypeReflection::Kind::Struct: return ShaderParameterKind::None;
 			case slang::TypeReflection::Kind::Matrix: return ShaderParameterKind::Matrix;
 			case slang::TypeReflection::Kind::Vector: return ShaderParameterKind::Vector;
 			case slang::TypeReflection::Kind::Scalar: return ShaderParameterKind::Scalar;
 			case slang::TypeReflection::Kind::Array: return ShaderParameterKind::Array;
 			case slang::TypeReflection::Kind::ConstantBuffer: return ShaderParameterKind::UniformBuffer;
-			case slang::TypeReflection::Kind::Resource: return ShaderParameterKind::StorageBuffer;
 			case slang::TypeReflection::Kind::SamplerState: return ShaderParameterKind::Sampler;
-			case slang::TypeReflection::Kind::TextureBuffer: 
 			case slang::TypeReflection::Kind::ShaderStorageBuffer: return ShaderParameterKind::StorageBuffer;
 			case slang::TypeReflection::Kind::ParameterBlock: return ShaderParameterKind::UniformBuffer;
 			case slang::TypeReflection::Kind::None:

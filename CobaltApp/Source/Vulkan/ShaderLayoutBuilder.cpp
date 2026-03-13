@@ -271,7 +271,7 @@ namespace Cobalt
 
 		if (typeLayout->getKind() != slang::TypeReflection::Kind::Struct)
 		{
-			shaderParameter.Kind = SlangUtils::SlangTypeReflectionKindToShaderParameterKind(typeLayout->getKind());
+			shaderParameter.Kind = SlangUtils::SlangTypeLayoutToShaderParameterKind(typeLayout);
 			shaderParameter.Binding = bindingOffset + varLayout->getOffset(SLANG_PARAMETER_CATEGORY_DESCRIPTOR_TABLE_SLOT);
 			shaderParameter.UniformByteOffset = uniformByteOffset + varLayout->getOffset();
 		}
@@ -287,12 +287,12 @@ namespace Cobalt
 			}
 			case slang::TypeReflection::Kind::Array:
 			{
-				shaderParameter.ElementKind = SlangUtils::SlangTypeReflectionKindToShaderParameterKind(elementTypeLayout->getKind());
+				shaderParameter.ElementKind = SlangUtils::SlangResourceShapeToShaderParameterKind(typeLayout->getType()->getElementType()->getResourceShape());
 				shaderParameter.ElementStride = typeLayout->getElementStride(SLANG_PARAMETER_CATEGORY_UNIFORM);
 
 				uint32_t elementCount = typeLayout->getElementCount();
 
-				if (elementCount == SLANG_UNBOUNDED_SIZE)
+				if (elementCount == 0 || elementCount == SLANG_UNBOUNDED_SIZE)
 					break;
 
 				shaderParameter.Elements.resize(elementCount);
@@ -300,7 +300,7 @@ namespace Cobalt
 				for (uint32_t i = 0; i < elementCount; i++)
 				{
 					shaderParameter.Elements[i] = ShaderParameter {
-						.Kind = SlangUtils::SlangTypeReflectionKindToShaderParameterKind(elementTypeLayout->getKind()),
+						.Kind = SlangUtils::SlangTypeLayoutToShaderParameterKind(elementTypeLayout),
 						.Binding = shaderParameter.Binding,
 						.UniformByteOffset = uniformByteOffset + i * shaderParameter.ElementStride,
 						.Index = i,

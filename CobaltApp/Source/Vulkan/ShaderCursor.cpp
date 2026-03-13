@@ -6,8 +6,15 @@
 namespace Cobalt
 {
 
+	ShaderCursor::ShaderCursor(ShaderParameter& shaderParameter, DescriptorHandle descriptorHandle)
+		: mShaderParameter(shaderParameter), mDescriptorBindings{}, mDescriptorBindingsRef(mDescriptorBindings), mDescriptorHandle(descriptorHandle)
+	{
+		CO_PROFILE_FN();
+	}
+
+
 	ShaderCursor::ShaderCursor(ShaderParameter& shaderParameter, DescriptorBindings& descriptorBindings, DescriptorHandle descriptorHandle)
-		: mShaderParameter(shaderParameter), mDescriptorBindings(descriptorBindings), mDescriptorHandle(descriptorHandle)
+		: mShaderParameter(shaderParameter), mDescriptorBindingsRef(descriptorBindings), mDescriptorHandle(descriptorHandle)
 	{
 		CO_PROFILE_FN();
 	}
@@ -21,7 +28,9 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		VkDescriptorType descriptorType;
+		assert(mShaderParameter.Kind == ShaderParameterKind::UniformBuffer || mShaderParameter.Kind == ShaderParameterKind::StorageBuffer);
+
+		VkDescriptorType descriptorType = VK_DESCRIPTOR_TYPE_MAX_ENUM;
 
 		if (buffer.GetUsageFlags() & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
 		{
@@ -32,7 +41,7 @@ namespace Cobalt
 			descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		}
 
-		mDescriptorBindings.Bindings.push_back(DescriptorBinding {
+		mDescriptorBindingsRef.Bindings.push_back(DescriptorBinding {
 			.Binding = mShaderParameter.Binding,
 			.Element = mShaderParameter.Index,
 			.DescriptorType = descriptorType,
@@ -54,9 +63,11 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
+		assert(mShaderParameter.Kind == ShaderParameterKind::CombinedImageSampler);
+
 		VkDescriptorType descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
-		mDescriptorBindings.Bindings.push_back(DescriptorBinding {
+		mDescriptorBindingsRef.Bindings.push_back(DescriptorBinding {
 			.Binding = mShaderParameter.Binding,
 			.Element = mShaderParameter.Index,
 			.DescriptorType = descriptorType,
@@ -69,6 +80,7 @@ namespace Cobalt
 	void ShaderCursor::Write(const std::vector<Image>& images)
 	{
 		CO_PROFILE_FN();
+		assert(mShaderParameter.Kind == ShaderParameterKind::Array);
 
 		for (uint32_t i = 0; i < images.size(); i++)
 		{
@@ -81,7 +93,7 @@ namespace Cobalt
 		CO_PROFILE_FN();
 
 		auto& descriptorCache = GraphicsContext::Get().GetDescriptorCache();
-		descriptorCache.WriteDescriptorBindingsIfNeeded(mDescriptorHandle, mDescriptorBindings);
+		descriptorCache.WriteDescriptorBindingsIfNeeded(mDescriptorHandle, mDescriptorBindingsRef);
 	}
 
 }

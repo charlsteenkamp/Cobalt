@@ -1,16 +1,12 @@
 #pragma once
 #include "VulkanUtils.hpp"
+#include "HashUtils.hpp"
 
-#include <functional>
+
 #include <vector>
 
 namespace Cobalt
 {
-
-	inline void HashCombine(size_t& seed, size_t value)
-	{
-		seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-	}
 
 	using DescriptorBindingHash = size_t;
 	using DescriptorSignature = size_t;

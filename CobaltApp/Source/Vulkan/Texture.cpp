@@ -102,22 +102,6 @@ namespace Cobalt
 		//VK_CALL(vkCreateImage(GraphicsContext::Get().GetDevice(), &imageCreateInfo, nullptr, &mImage));
 		VK_CALL(vmaCreateImage(GraphicsContext::Get().GetAllocator(), &imageCreateInfo, &allocCreateInfo, &mImage, &mAllocation, &mAllocationInfo));
 
-#if 0
-		// Allocate memory
-
-		VkMemoryRequirements memoryRequirements;
-		vkGetImageMemoryRequirements(GraphicsContext::Get().GetDevice(), mImage, &memoryRequirements);
-
-		VkMemoryAllocateInfo memoryAllocateInfo = {
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = memoryRequirements.size,
-			.memoryTypeIndex = FindMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, GraphicsContext::Get().GetPhysicalDevice())
-		};
-
-		VK_CALL(vkAllocateMemory(GraphicsContext::Get().GetDevice(), &memoryAllocateInfo, nullptr, &mMemory));
-		VK_CALL(vkBindImageMemory(GraphicsContext::Get().GetDevice(), mImage, mMemory, 0));
-#endif
-
 		// Create image view
 
 		if (mFormat == VK_FORMAT_D16_UNORM_S8_UINT || mFormat == VK_FORMAT_D16_UNORM || mFormat == VK_FORMAT_D24_UNORM_S8_UINT || mFormat == VK_FORMAT_D32_SFLOAT)

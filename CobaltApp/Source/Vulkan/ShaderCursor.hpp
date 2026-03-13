@@ -6,6 +6,7 @@
 #include "DescriptorBufferManager.hpp"
 
 #include <string>
+#include <cassert>
 
 namespace Cobalt
 {
@@ -13,8 +14,11 @@ namespace Cobalt
 	class ShaderCursor
 	{
 	public:
-		ShaderCursor(ShaderParameter& shaderParameter, DescriptorBindings& descriptorBindings, DescriptorHandle descriptorHandle);
+		ShaderCursor(ShaderParameter& shaderParameter, DescriptorHandle descriptorHandle);
 		~ShaderCursor();
+
+	private:
+		ShaderCursor(ShaderParameter& shaderParameter, DescriptorBindings& descriptorBindings, DescriptorHandle descriptorHandle);
 
 	public:
 		void Write(const VulkanBuffer& buffer);
@@ -24,21 +28,24 @@ namespace Cobalt
 
 		ShaderCursor Field(const std::string& name) const
 		{
-			return { mShaderParameter.Fields.at(name), mDescriptorBindings, mDescriptorHandle };
+			assert(mShaderParameter.Fields.contains(name));
+			return { mShaderParameter.Fields.at(name), mDescriptorBindingsRef, mDescriptorHandle };
 		}
 
 		ShaderCursor Element(uint32_t index) const
 		{
+			assert(mShaderParameter.Kind == ShaderParameterKind::Array);
+
 			if (index >= mShaderParameter.Elements.size())
 			{
 				mShaderParameter.Elements.push_back(ShaderParameter{
-					.Kind = mShaderParameter.Kind,
+					.Kind = mShaderParameter.ElementKind,
 					.Binding = mShaderParameter.Binding,
 					.Index = index,
 				});
 			}
 
-			return { mShaderParameter.Elements[index], mDescriptorBindings, mDescriptorHandle};
+			return { mShaderParameter.Elements[index], mDescriptorBindingsRef, mDescriptorHandle};
 		}
 
 		ShaderCursor WriteField(const std::string& name, const VulkanBuffer& buffer) const
@@ -64,7 +71,8 @@ namespace Cobalt
 
 	private:
 		ShaderParameter& mShaderParameter;
-		DescriptorBindings& mDescriptorBindings;
+		DescriptorBindings mDescriptorBindings;
+		DescriptorBindings& mDescriptorBindingsRef;
 		DescriptorHandle mDescriptorHandle;
 	};
 

@@ -350,19 +350,6 @@ namespace Cobalt
 			.ImageView = texture.GetImageView(),
 			.ImageLayout = texture.GetImageLayout()
 		});
-	
-#if 0
-		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
-
-		for (uint32_t i = 0; i < frameCount; i++)
-		{
-			VulkanDescriptorSet* descriptorSet = pipeline.GetDescriptorSet(i);
-			uint32_t textureIndex = descriptorSet->GetDescriptorImageCount();
-
-			descriptorSet->SetImageBinding(texture, 3, textureIndex);
-			descriptorSet->Update();
-		}
-#endif
 	}
 
 	void Renderer::UploadMaterial(Material& material)
@@ -413,7 +400,6 @@ namespace Cobalt
 
 		VkExtent2D extent = GraphicsContext::Get().GetSwapchain().GetExtent();
 
-#if 1
 		VkViewport viewport = {
 			.x = 0,
 			.y = (float)extent.height,
@@ -422,16 +408,6 @@ namespace Cobalt
 			.minDepth = 0.0f,
 			.maxDepth = 1.0f
 		};
-#else
-		VkViewport viewport = {
-			.x = 0,
-			.y = 0,
-			.width = (float)extent.width,
-			.height = (float)extent.height,
-			.minDepth = 0.0f,
-			.maxDepth = 1.0f
-		};
-#endif
 
 		VkRect2D scissor = {
 			.extent = extent
@@ -475,9 +451,8 @@ namespace Cobalt
 
 		ShaderParameter& geometryPassShaderParameter = sData->Shaders->GetShader(sData->GeometryPassShaderHandle)->GetRootShaderParameter();
 		DescriptorHandle geometryPassDescriptorHandle = sData->GeometryPassDescriptorHandles[frameIndex];
-		DescriptorBindings geometryPassDescriptorBindings;
 		
-		ShaderCursor geometryPassShaderCursor(geometryPassShaderParameter, geometryPassDescriptorBindings, geometryPassDescriptorHandle);
+		ShaderCursor geometryPassShaderCursor(geometryPassShaderParameter, geometryPassDescriptorHandle);
 		geometryPassShaderCursor.Field("scene").Write(sceneDataUniformBuffer);
 		geometryPassShaderCursor.Field("objects").Write(objectsStorageBuffer);
 		geometryPassShaderCursor.Field("materials").Write(materialsStorageBuffer);
@@ -518,9 +493,8 @@ namespace Cobalt
 
 		ShaderParameter& lightingPassShaderParameter = sData->Shaders->GetShader(sData->LightingPassShaderHandle)->GetRootShaderParameter();
 		DescriptorHandle lightingPassDescriptorHandle = sData->LightingPassDescriptorHandles[frameIndex];
-		DescriptorBindings lightingPassDescriptorBindings;
 
-		ShaderCursor lightingPassShaderCursor(lightingPassShaderParameter, lightingPassDescriptorBindings, lightingPassDescriptorHandle);
+		ShaderCursor lightingPassShaderCursor(lightingPassShaderParameter, lightingPassDescriptorHandle);
 		lightingPassShaderCursor.Field("scene").Write(sceneDataUniformBuffer);
 		lightingPassShaderCursor.Field("gBuffers")
 			.WriteField("SamplerPosition", *sData->PositionTexture)
@@ -557,28 +531,7 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 		
-		/*for (const MeshSurface& surface : mesh->GetSurfaces())
-		{
-			DrawCall draw;
-			draw.IndexBuffer = mesh->GetIndexBuffer();
-			draw.FirstIndex  = surface.FirstIndex;
-			draw.IndexCount  = surface.IndexCount;
-			draw.Material    = AssetManager::GetMaterial(surface.MaterialAssetHandle);
-
-			sData->DrawCalls.push_back(draw);
-		}*/
-
-		/*DrawCall draw;
-		draw.IndexBuffer = mesh->GetIndexBuffer();
-		draw.FirstIndex  = 0;
-		draw.IndexCount  = mesh->GetIndices().size();
-		draw.Material    = mesh->GetMaterial();
-
-		sData->DrawCalls.push_back(draw);*/
-
 		sData->DrawCalls.emplace_back(mesh);
-
-
 		sData->Objects.emplace_back(transform.GetTransform(), mesh);
 	}
 
@@ -673,58 +626,6 @@ namespace Cobalt
 
 			VK_CALL(vkCreateFramebuffer(GraphicsContext::Get().GetDevice(), &lightingPassFramebufferCreateInfo, nullptr, &sData->LightingPassFramebuffers[i]));
 		}
-	}
-
-#if 0
-	Pipeline* Renderer::CreatePipeline(const PipelineInfo& info, VkRenderPass renderPass)
-	{
-		CO_PROFILE_FN();
-
-		if (renderPass == VK_NULL_HANDLE)
-			renderPass = sData->MainRenderPass;
-
-		sData->Pipelines.push_back(std::make_unique<Pipeline>(info, renderPass));
-
-		// Allocate descriptor sets & set buffer bindings
-
-		Pipeline* pipeline = sData->Pipelines.back().get();
-		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
-
-		std::vector<VulkanDescriptorSet*> descriptorSets = pipeline->AllocateDescriptorSets(GraphicsContext::Get().GetDescriptorPool(), 0, frameCount);
-
-		for (uint32_t i = 0; i < frameCount; i++)
-		{
-			descriptorSets[i]->SetBufferBinding(*sData->SceneDataUniformBuffers[i], sData->sDescriptorSetGlobalBinding);
-			descriptorSets[i]->SetBufferBinding(*sData->ObjectStorageBuffers[i], sData->sDescriptorSetObjectBinding);
-			descriptorSets[i]->SetBufferBinding(*sData->MaterialDataStorageBuffers[i], sData->sDescriptorSetMaterialBinding);
-
-			descriptorSets[i]->Update();
-		}
-
-		return pipeline;
-	}
-#endif
-
-	std::vector<DrawCall> Renderer::CullDrawCalls(const std::vector<DrawCall>& draws)
-	{
-		CO_PROFILE_FN();
-
-		// TODO
-		return draws;
-
-#if 0
-		std::vector<DrawCall> culledDraws;
-
-		for (const DrawCall& draw : draws)
-		{
-			const ObjectData& object = sData->Objects[draw.FirstInstance];
-
-			glm::mat4 mvp = sData->ActiveScene.Camera.ViewProjectionMatrix * object.Transform;
-
-		}
-
-		return culledDraws;
-#endif
 	}
 
 	std::vector<DrawBatch> Renderer::BatchDrawCalls()

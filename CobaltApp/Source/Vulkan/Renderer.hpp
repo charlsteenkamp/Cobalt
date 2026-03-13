@@ -88,10 +88,6 @@ namespace Cobalt
 		static void CreateOrRecreateAttachments();
 		static void CreateOrRecreateFramebuffers();
 
-		// Returns non-owning pointer to created pipeline
-		//static Pipeline* CreatePipeline(const PipelineInfo& info, VkRenderPass renderPass);
-
-		static std::vector<DrawCall> CullDrawCalls(const std::vector<DrawCall>& draws);
 		static std::vector<DrawBatch> BatchDrawCalls();
 
 	private:

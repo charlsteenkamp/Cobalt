@@ -75,7 +75,7 @@ namespace Cobalt
 		static float lastTime = glfwGetTime();
 		float currentTime = glfwGetTime();
 
-		if (currentTime - lastTime > 1.0f)
+		if (currentTime - lastTime > 0.5f)
 		{
 			lastTime = currentTime;
 			mLastDeltaTime = deltaTime;
