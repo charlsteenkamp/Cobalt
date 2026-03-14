@@ -9,6 +9,7 @@
 #include "Mesh.hpp"
 #include "Asset.hpp"
 #include "DescriptorBindings.hpp"
+#include "RenderGraph.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -135,6 +136,7 @@ namespace Cobalt
 			static constexpr uint32_t sMaxObjectCount   = 10000;
 			
 			//std::unordered_map<AssetHandle, MaterialHandle> AssetMaterialHandleMap;
+			std::unique_ptr<RenderGraph> RenderGraph;
 
 			std::vector<DrawCall> DrawCalls;
 		};

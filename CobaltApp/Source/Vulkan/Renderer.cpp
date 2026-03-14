@@ -234,7 +234,7 @@ namespace Cobalt
 
 			// Create attachments
 
-			uint32_t width  = GraphicsContext::Get().GetSwapchain().GetExtent().width;
+			uint32_t width = GraphicsContext::Get().GetSwapchain().GetExtent().width;
 			uint32_t height = GraphicsContext::Get().GetSwapchain().GetExtent().height;
 
 #endif
@@ -255,8 +255,8 @@ namespace Cobalt
 
 			for (uint32_t i = 0; i < frameCount; i++)
 			{
-				sData->SceneDataUniformBuffers[i]    = VulkanBuffer::CreateMappedBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
-				sData->ObjectStorageBuffers[i]       = VulkanBuffer::CreateMappedBuffer(sData->sMaxObjectCount * sizeof(ObjectData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
+				sData->SceneDataUniformBuffers[i] = VulkanBuffer::CreateMappedBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
+				sData->ObjectStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxObjectCount * sizeof(ObjectData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 				sData->MaterialDataStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxMaterialCount * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 			}
 
@@ -317,6 +317,102 @@ namespace Cobalt
 		{
 			sData->LightingPassDescriptorHandles[i] = descriptorBufferManager.AllocateDescriptor(lightingPassShader->GetDescriptorSetLayouts()[0], true, true);
 		}
+
+		// Setup render graph
+
+		RenderGraphBuilder builder;
+
+		uint32_t width  = GraphicsContext::Get().GetSwapchain().GetExtent().width;
+		uint32_t height = GraphicsContext::Get().GetSwapchain().GetExtent().height;
+
+		auto positionAttachment  = builder.AddResource(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
+		auto baseColorAttachment = builder.AddResource(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
+		auto normalAttachment    = builder.AddResource(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
+		auto ocrAttachment       = builder.AddResource(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
+		auto emissiveAttachment  = builder.AddResource(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
+		auto depthAttachment     = builder.AddResource(TextureInfo(width, height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
+
+		auto geometryPass = builder.AddPass("Geometry", RGPassType::Graphics);
+		builder.AddDependency(geometryPass, positionAttachment, RGAccessType::ColorAttachmentWrite);
+		builder.AddDependency(geometryPass, baseColorAttachment, RGAccessType::ColorAttachmentWrite);
+		builder.AddDependency(geometryPass, normalAttachment, RGAccessType::ColorAttachmentWrite);
+		builder.AddDependency(geometryPass, ocrAttachment, RGAccessType::ColorAttachmentWrite);
+		builder.AddDependency(geometryPass, emissiveAttachment, RGAccessType::ColorAttachmentWrite);
+		builder.SetExecutionCallback(geometryPass, [&descriptorBufferManager](VkCommandBuffer commandBuffer)
+		{
+			uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
+
+			VulkanBuffer& sceneDataUniformBuffer = *sData->SceneDataUniformBuffers[frameIndex];
+			VulkanBuffer& objectsStorageBuffer = *sData->ObjectStorageBuffers[frameIndex];
+			VulkanBuffer& materialsStorageBuffer = *sData->MaterialDataStorageBuffers[frameIndex];
+
+			ShaderParameter& shaderParameter = sData->Shaders->GetShader(sData->GeometryPassShaderHandle)->GetRootShaderParameter();
+			DescriptorHandle descriptorHandle = sData->GeometryPassDescriptorHandles[frameIndex];
+			
+			ShaderCursor shaderCursor(shaderParameter, descriptorHandle);
+			shaderCursor.Field("scene").Write(sceneDataUniformBuffer);
+			shaderCursor.Field("objects").Write(objectsStorageBuffer);
+			shaderCursor.Field("materials").Write(materialsStorageBuffer);
+			shaderCursor.Field("textures").Write(sData->BindlessImages);
+			shaderCursor.Finalize();
+
+			VkBuffer lastIndexBuffer = VK_NULL_HANDLE;
+			VkPipeline lastPipeline = VK_NULL_HANDLE;
+
+			for (const DrawBatch& batch : BatchDrawCalls())
+			{
+				const VulkanBuffer& indexBuffer = *batch.IndexBuffer;
+				const Pipeline&     pipeline    = batch.Material->GetPipeline();
+
+				if (indexBuffer.GetBuffer() != lastIndexBuffer)
+				{
+					lastIndexBuffer = indexBuffer.GetBuffer();
+					vkCmdBindIndexBuffer(commandBuffer, indexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+				}
+
+				if (pipeline.GetPipeline() != lastPipeline)
+				{
+					lastPipeline = pipeline.GetPipeline();
+					vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
+					descriptorBufferManager.SetDescriptorBufferOffsets(commandBuffer, pipeline.GetPipelineLayout(), descriptorHandle);
+				}
+
+				vkCmdDrawIndexed(commandBuffer, batch.IndexCount, batch.InstanceCount, batch.FirstIndex, 0, batch.FirstInstance);
+			}
+		});
+
+		auto lightingPass = builder.AddPass("Lighting", RGPassType::Graphics);
+		builder.AddDependency(lightingPass, positionAttachment, RGAccessType::ShaderRead);
+		builder.AddDependency(lightingPass, baseColorAttachment, RGAccessType::ShaderRead);
+		builder.AddDependency(lightingPass, normalAttachment, RGAccessType::ShaderRead);
+		builder.AddDependency(lightingPass, ocrAttachment, RGAccessType::ShaderRead);
+		builder.AddDependency(lightingPass, emissiveAttachment, RGAccessType::ShaderRead);
+		builder.AddDependency(lightingPass, depthAttachment, RGAccessType::ReadWrite);
+		builder.SetExecutionCallback(lightingPass, [&descriptorBufferManager, positionAttachment, baseColorAttachment, normalAttachment, ocrAttachment, emissiveAttachment](VkCommandBuffer commandBuffer)
+		{
+			uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
+
+			VulkanBuffer& sceneDataUniformBuffer = *sData->SceneDataUniformBuffers[frameIndex];
+
+			ShaderParameter& shaderParameter = sData->Shaders->GetShader(sData->LightingPassShaderHandle)->GetRootShaderParameter();
+			DescriptorHandle descriptorHandle = sData->LightingPassDescriptorHandles[frameIndex];
+
+			ShaderCursor lightingPassShaderCursor(shaderParameter, descriptorHandle);
+			lightingPassShaderCursor.Field("scene").Write(sceneDataUniformBuffer);
+			lightingPassShaderCursor.Field("gBuffers")
+				.WriteField("SamplerPosition", sData->RenderGraph->GetResource(positionAttachment))
+				.WriteField("SamplerBaseColor", sData->RenderGraph->GetResource(baseColorAttachment))
+				.WriteField("SamplerNormal", sData->RenderGraph->GetResource(normalAttachment))
+				.WriteField("SamplerOcclusionRoughnessMetallic", sData->RenderGraph->GetResource(ocrAttachment))
+				.WriteField("SamplerEmissive", sData->RenderGraph->GetResource(emissiveAttachment));
+			lightingPassShaderCursor.Finalize();
+
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sData->LightingPassPipeline->GetPipeline());
+			descriptorBufferManager.SetDescriptorBufferOffsets(commandBuffer, sData->LightingPassPipeline->GetPipelineLayout(), descriptorHandle);
+			vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		});
+
+		builder.Compile();
 	}
 
 	void Renderer::Shutdown()
@@ -392,6 +488,22 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
+		VkCommandBuffer commandBuffer = GraphicsContext::Get().GetActiveCommandBuffer();
+
+		DescriptorBufferManager& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
+		descriptorBufferManager.BindDescriptorBuffers(commandBuffer);
+
+		uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
+
+		VulkanBuffer& sceneDataUniformBuffer = *sData->SceneDataUniformBuffers[frameIndex];
+		VulkanBuffer& objectsStorageBuffer = *sData->ObjectStorageBuffers[frameIndex];
+
+		sceneDataUniformBuffer.CopyData(&sData->ActiveScene);
+		objectsStorageBuffer.CopyData(sData->Objects.data(), sData->Objects.size() * sizeof(ObjectData));
+
+		sData->RenderGraph->Execute();
+
+#if 0
 		const Swapchain& swapchain = GraphicsContext::Get().GetSwapchain();
 
 		VkCommandBuffer commandBuffer = GraphicsContext::Get().GetActiveCommandBuffer();
@@ -525,6 +637,7 @@ namespace Cobalt
 		descriptorBufferManager.SetDescriptorBufferOffsets(commandBuffer, sData->LightingPassPipeline->GetPipelineLayout(), lightingPassDescriptorHandle);
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 		vkCmdEndRenderPass(commandBuffer);
+#endif
 	}
 
 	void Renderer::DrawMesh(const Transform& transform, const Mesh* mesh)

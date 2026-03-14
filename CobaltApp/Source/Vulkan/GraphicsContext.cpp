@@ -142,14 +142,9 @@ namespace Cobalt
 		// Create logical device
 
 		{
-			const char* deviceExtensions[] = { "VK_KHR_swapchain", VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME };
+			const char* deviceExtensions[] = { "VK_KHR_swapchain", VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME};
 			const float queuePriority[] = { 1.0f };
 
-			VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeapFeatures = {
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
-				.descriptorHeap = VK_TRUE
-			};
-			
 			VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferFeatures = {
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
 				.descriptorBuffer = VK_TRUE
@@ -168,22 +163,9 @@ namespace Cobalt
 				.bufferDeviceAddress = VK_TRUE,
 			};
 
-			VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures = {
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-				.pNext = (void*)&bufferDeviceAddressFeatures,
-				.shaderSampledImageArrayNonUniformIndexing = true,
-				.shaderStorageBufferArrayNonUniformIndexing = true,
-				.shaderStorageImageArrayNonUniformIndexing = true,
-				.descriptorBindingSampledImageUpdateAfterBind = true,
-				.descriptorBindingStorageImageUpdateAfterBind = true,
-				.descriptorBindingStorageBufferUpdateAfterBind = true,
-				.descriptorBindingPartiallyBound = true,
-				.runtimeDescriptorArray = true,
-			};
-
 			VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures = {
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
-				.pNext = (void*)&descriptorIndexingFeatures,
+				.pNext = (void*)&bufferDeviceAddressFeatures,
 				.shaderDrawParameters = VK_TRUE
 			};
 

@@ -70,12 +70,8 @@ namespace Cobalt
 				.value = slang::CompilerOptionValue { .kind = slang::CompilerOptionValueKind::Int, .intValue0 = 1, .intValue1 = 1 }
 			},
 			{
-				.name  = slang::CompilerOptionName::EmitSpirvViaGLSL,
-				.value = slang::CompilerOptionValue { .kind = slang::CompilerOptionValueKind::Int, .intValue0 = 1, .intValue1 = 1 }
-			},
-			{
 				.name  = slang::CompilerOptionName::FloatingPointMode,
-				.value = slang::CompilerOptionValue { .kind = slang::CompilerOptionValueKind::String, .stringValue0 = "precise" }
+				.value = slang::CompilerOptionValue { .kind = slang::CompilerOptionValueKind::Int, .intValue0 = SLANG_FLOATING_POINT_MODE_FAST }
 			}
 		};
 
@@ -100,7 +96,7 @@ namespace Cobalt
 
 		Slang::ComPtr<slang::IComponentType> linkedProgram;
 
-		SlangUtils::CheckError(program->linkWithOptions(linkedProgram.writeRef(), 3, compilerOptions, diagnosticsBlob.writeRef()));
+		SlangUtils::CheckError(program->linkWithOptions(linkedProgram.writeRef(), 2, compilerOptions, diagnosticsBlob.writeRef()));
 		SlangUtils::CheckBlob(diagnosticsBlob);
 
 		return linkedProgram;
