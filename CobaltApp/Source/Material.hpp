@@ -38,7 +38,7 @@ namespace Cobalt
 	struct MaterialInfo
 	{
 		const MaterialData& MaterialData;
-		const Pipeline&     Pipeline;
+		//const Pipeline&     Pipeline;
 	};
 
 	class Material
@@ -48,7 +48,7 @@ namespace Cobalt
 		~Material();
 
 	public:
-		const Pipeline& GetPipeline() const { return mPipeline; }
+		//const Pipeline& GetPipeline() const { return mPipeline; }
 
 		      MaterialData& GetMaterialData()       { return mMaterialData; }
 		const MaterialData& GetMaterialData() const { return mMaterialData; }
@@ -57,7 +57,7 @@ namespace Cobalt
 
 	private:
 		MaterialData mMaterialData;
-		const Pipeline& mPipeline;
+		//const Pipeline& mPipeline;
 
 		MaterialHandle mMaterialHandle = CO_INVALID_MATERIAL_HANDLE;
 

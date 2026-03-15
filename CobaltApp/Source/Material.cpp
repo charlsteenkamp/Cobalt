@@ -7,7 +7,7 @@ namespace Cobalt
 {
 
 	Material::Material(const MaterialInfo& materialInfo)
-		: mMaterialData(materialInfo.MaterialData), mPipeline(materialInfo.Pipeline)
+		: mMaterialData(materialInfo.MaterialData)/*, mPipeline(materialInfo.Pipeline)*/
 	{
 		CO_PROFILE_FN();
 

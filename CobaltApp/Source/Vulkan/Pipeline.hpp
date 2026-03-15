@@ -10,11 +10,12 @@ namespace Cobalt
 	struct ColorAttachment
 	{
 		bool Blend = true;
+		VkFormat Format;
 	};
 
 	struct PipelineInfo
 	{
-		Shader& Shader;
+		const Shader& Shader;
 
 		VkPrimitiveTopology PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		VkCullModeFlags CullMode = VK_CULL_MODE_NONE;
@@ -22,14 +23,14 @@ namespace Cobalt
 
 		bool EnableDepthTesting = true;
 
-		// TODO: add more options e.g. color format
 		std::vector<ColorAttachment> ColorAttachments;
+		VkFormat DepthAttachmentFormat = VK_FORMAT_UNDEFINED;
 	};
 
 	class Pipeline
 	{
 	public:
-		Pipeline(const PipelineInfo& info, VkRenderPass renderPass);
+		Pipeline(const PipelineInfo& info);
 		~Pipeline();
 
 		// Called automatically
@@ -41,7 +42,6 @@ namespace Cobalt
 	
 	private:
 		PipelineInfo mInfo;
-		VkRenderPass mRenderPass;
 
 		VkPipeline mPipeline;
 		VkPipelineLayout mPipelineLayout;

@@ -53,7 +53,7 @@ namespace Cobalt
 			{
 				sphereMaterialData.RoughnessFactor = float(x) / (sSphereGridSize - 1);
 
-				MaterialInfo sphereMaterialInfo = { sphereMaterialData, Renderer::GetPBRPipeline() };
+				MaterialInfo sphereMaterialInfo = { sphereMaterialData/*, Renderer::GetPBRPipeline()*/};
 
 				AssetHandle pbrMaterialAssetHandle = AssetManager::RegisterMaterial(sphereMaterialInfo);
 				mSphereMaterials[y][x] = AssetManager::GetMaterial(pbrMaterialAssetHandle);

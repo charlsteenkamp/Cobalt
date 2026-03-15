@@ -33,47 +33,45 @@ namespace Cobalt
 
 		// Setup Vulkan Instance
 
+		uint32_t requiredExtensionCount = 0;
+		const char** requiredExtensions = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
+
+		std::vector<const char*> extensions(requiredExtensionCount);
+		memcpy(extensions.data(), requiredExtensions, requiredExtensionCount * sizeof(const char*));
+
+		extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+
+		if (mEnableValidationLayers)
 		{
-			uint32_t requiredExtensionCount = 0;
-			const char** requiredExtensions = glfwGetRequiredInstanceExtensions(&requiredExtensionCount);
-
-			std::vector<const char*> extensions(requiredExtensionCount);
-			memcpy(extensions.data(), requiredExtensions, requiredExtensionCount * sizeof(const char*));
-
-			extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-
-			if (mEnableValidationLayers)
-			{
-				extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-			}
-
-			const char* layers[] = { "VK_LAYER_KHRONOS_validation" };
-
-			VkApplicationInfo applicationInfo = {
-				.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-				.pApplicationName = "Cobalt Application",
-				.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-				.pEngineName = "Cobalt",
-				.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-				.apiVersion = VK_API_VERSION_1_3
-			};
-
-			VkInstanceCreateInfo instanceCreateInfo = {
-				.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-				.flags = 0,
-				.pApplicationInfo = &applicationInfo,
-				.enabledExtensionCount = (uint32_t)extensions.size(),
-				.ppEnabledExtensionNames = extensions.data()
-			};
-
-			if (mEnableValidationLayers)
-			{
-				instanceCreateInfo.ppEnabledLayerNames = layers;
-				instanceCreateInfo.enabledLayerCount = 1;
-			}
-
-			VK_CALL(vkCreateInstance(&instanceCreateInfo, nullptr, &mInstance));
+			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
+
+		const char* layers[] = { "VK_LAYER_KHRONOS_validation" };
+
+		VkApplicationInfo applicationInfo = {
+			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			.pApplicationName = "Cobalt Application",
+			.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+			.pEngineName = "Cobalt",
+			.engineVersion = VK_MAKE_VERSION(1, 0, 0),
+			.apiVersion = VK_API_VERSION_1_3
+		};
+
+		VkInstanceCreateInfo instanceCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+			.flags = 0,
+			.pApplicationInfo = &applicationInfo,
+			.enabledExtensionCount = (uint32_t)extensions.size(),
+			.ppEnabledExtensionNames = extensions.data()
+		};
+
+		if (mEnableValidationLayers)
+		{
+			instanceCreateInfo.ppEnabledLayerNames = layers;
+			instanceCreateInfo.enabledLayerCount = 1;
+		}
+
+		VK_CALL(vkCreateInstance(&instanceCreateInfo, nullptr, &mInstance));
 
 		// Create debug utils messenger
 
@@ -92,225 +90,170 @@ namespace Cobalt
 
 		// Select physical device
 
+		uint32_t count = 0;
+		VK_CALL(vkEnumeratePhysicalDevices(mInstance, &count, nullptr));
+
+		VkPhysicalDevice* physicalDevices = (VkPhysicalDevice*)malloc(count * sizeof(VkPhysicalDevice));
+		VK_CALL(vkEnumeratePhysicalDevices(mInstance, &count, physicalDevices));
+
+		uint32_t selectedIndex = 0;
+
+		for (uint32_t i = 0; i < count; i++)
 		{
-			uint32_t count = 0;
-			VK_CALL(vkEnumeratePhysicalDevices(mInstance, &count, nullptr));
+			VkPhysicalDeviceProperties properties;
+			vkGetPhysicalDeviceProperties(physicalDevices[i], &properties);
 
-			VkPhysicalDevice* physicalDevices = (VkPhysicalDevice*)malloc(count * sizeof(VkPhysicalDevice));
-			VK_CALL(vkEnumeratePhysicalDevices(mInstance, &count, physicalDevices));
-
-			uint32_t selectedIndex = 0;
-
-			for (uint32_t i = 0; i < count; i++)
+			if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 			{
-				VkPhysicalDeviceProperties properties;
-				vkGetPhysicalDeviceProperties(physicalDevices[i], &properties);
-
-				if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-				{
-					selectedIndex = i;
-					break;
-				}
+				selectedIndex = i;
+				break;
 			}
-
-			mPhysicalDevice = physicalDevices[selectedIndex];
-
-			free(physicalDevices);
 		}
+
+		mPhysicalDevice = physicalDevices[selectedIndex];
+
+		free(physicalDevices);
 
 		// Select graphics queue family
 
+		uint32_t queueFamilyPropertyCount = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(mPhysicalDevice, &queueFamilyPropertyCount, nullptr);
+
+		VkQueueFamilyProperties* queues = (VkQueueFamilyProperties*)malloc(queueFamilyPropertyCount * sizeof(VkQueueFamilyProperties));
+		vkGetPhysicalDeviceQueueFamilyProperties(mPhysicalDevice, &queueFamilyPropertyCount, queues);
+
+		for (int32_t i = 0; i < count; i++)
 		{
-			uint32_t count = 0;
-			vkGetPhysicalDeviceQueueFamilyProperties(mPhysicalDevice, &count, nullptr);
-
-			VkQueueFamilyProperties* queues = (VkQueueFamilyProperties*)malloc(count * sizeof(VkQueueFamilyProperties));
-			vkGetPhysicalDeviceQueueFamilyProperties(mPhysicalDevice, &count, queues);
-
-			for (int32_t i = 0; i < count; i++)
+			if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 			{
-				if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-				{
-					mQueueFamily = i;
-					break;
-				}
+				mQueueFamily = i;
+				break;
 			}
-			
-			free(queues);
 		}
+		
+		free(queues);
 
 		// Create logical device
 
-		{
-			const char* deviceExtensions[] = { "VK_KHR_swapchain", VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME};
-			const float queuePriority[] = { 1.0f };
+		const char* deviceExtensions[] = { "VK_KHR_swapchain", VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME };
+		const float queuePriority[] = { 1.0f };
 
-			VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferFeatures = {
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
-				.descriptorBuffer = VK_TRUE
-			};
+		VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+			.dynamicRendering = VK_TRUE
+		};
 
-			VkPhysicalDeviceVariablePointerFeatures variablePointerFeatures = {
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES,
-				.pNext = (void*)&descriptorBufferFeatures,
-				.variablePointersStorageBuffer = VK_TRUE,
-				.variablePointers = VK_TRUE,
-			};
+		VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferFeatures = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT,
+			.pNext = (void*)&dynamicRenderingFeatures,
+			.descriptorBuffer = VK_TRUE
+		};
 
-			VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-				.pNext = (void*)&variablePointerFeatures,
-				.bufferDeviceAddress = VK_TRUE,
-			};
+		VkPhysicalDeviceVariablePointerFeatures variablePointerFeatures = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES,
+			.pNext = (void*)&descriptorBufferFeatures,
+			.variablePointersStorageBuffer = VK_TRUE,
+			.variablePointers = VK_TRUE,
+		};
 
-			VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures = {
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
-				.pNext = (void*)&bufferDeviceAddressFeatures,
-				.shaderDrawParameters = VK_TRUE
-			};
+		VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
+			.pNext = (void*)&variablePointerFeatures,
+			.bufferDeviceAddress = VK_TRUE,
+		};
 
-			VkDeviceQueueCreateInfo queueCreateInfo[1] = {
-				{
-					.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-					.queueFamilyIndex = (uint32_t)mQueueFamily,
-					.queueCount = 1,
-					.pQueuePriorities = queuePriority
-				}
-			};
+		VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
+			.pNext = (void*)&bufferDeviceAddressFeatures,
+			.shaderDrawParameters = VK_TRUE
+		};
 
-			VkPhysicalDeviceFeatures physicalDeviceFeatures = {};
-			physicalDeviceFeatures.shaderInt64 = VK_TRUE;
-			physicalDeviceFeatures.samplerAnisotropy = VK_TRUE;
-
-			VkDeviceCreateInfo createInfo = {
-				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-				.pNext = &shaderDrawParametersFeatures,
-				.queueCreateInfoCount = 1,
-				.pQueueCreateInfos = queueCreateInfo,
-				.enabledExtensionCount = 2,
-				.ppEnabledExtensionNames = deviceExtensions,
-				.pEnabledFeatures = &physicalDeviceFeatures
-			};
-
-			VK_CALL(vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mDevice));
-
-			vkGetDeviceQueue(mDevice, mQueueFamily, 0, &mQueue);
-		}
-
-#if 0
-		// Create descriptor pool
-		
-		{
-			VkDescriptorPoolSize poolSizes[] = {
-//				{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 50000 },
-//				{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-//				{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-//				{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-//				{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10000 },
-				{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10000 },
-//				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-//				{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-//				{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
-			};
-
-			VkDescriptorPoolCreateInfo createInfo = {
-				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-				.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
-				.maxSets = 1000 * (sizeof(poolSizes) / sizeof(poolSizes[0])),
-				.poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]),
-				.pPoolSizes = poolSizes
-			};
-
-			VK_CALL(vkCreateDescriptorPool(mDevice, &createInfo, nullptr, &mDescriptorPool));
-		}
-#endif
-
-		// Create window surface
-
-		{
-			VK_CALL(glfwCreateWindowSurface(mInstance, mWindow.GetWindow(), nullptr, &mSurface));
-		}
-
-		// Create window swapchain
-
-		{
-			mSwapchain = std::make_unique<Swapchain>(mWindow, mDevice, mPhysicalDevice, mSurface);
-		}
-
-		// Create transient command pool
-
-		{
-#if 0
-			VkCommandPoolCreateInfo commandPoolCreateInfo = {
-				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-				.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+		VkDeviceQueueCreateInfo queueCreateInfo[1] = {
+			{
+				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 				.queueFamilyIndex = (uint32_t)mQueueFamily,
-			};
+				.queueCount = 1,
+				.pQueuePriorities = queuePriority
+			}
+		};
 
-			VK_CALL(vkCreateCommandPool(mDevice, &commandPoolCreateInfo, nullptr, &mTransientCommandPool));
-#endif
-		}
+		VkPhysicalDeviceFeatures physicalDeviceFeatures = {};
+		physicalDeviceFeatures.shaderInt64 = VK_TRUE;
+		physicalDeviceFeatures.samplerAnisotropy = VK_TRUE;
+
+		VkDeviceCreateInfo createInfo = {
+			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+			.pNext = &shaderDrawParametersFeatures,
+			.queueCreateInfoCount = 1,
+			.pQueueCreateInfos = queueCreateInfo,
+			.enabledExtensionCount = 3,
+			.ppEnabledExtensionNames = deviceExtensions,
+			.pEnabledFeatures = &physicalDeviceFeatures
+		};
+
+		VK_CALL(vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mDevice));
+
+		vkGetDeviceQueue(mDevice, mQueueFamily, 0, &mQueue);
+
+		// Create window surface & swapchain
+
+		VK_CALL(glfwCreateWindowSurface(mInstance, mWindow.GetWindow(), nullptr, &mSurface));
+
+		mSwapchain = std::make_unique<Swapchain>(mWindow, mDevice, mPhysicalDevice, mSurface);
 
 		// Create frames
 
+		mFrames.resize(mFrameCount);
+
+		for (FrameData& fd : mFrames)
 		{
-			mFrames.resize(mFrameCount);
+			// Create command pool
 
-			for (FrameData& fd : mFrames)
-			{
-				// Create command pool
+			VkCommandPoolCreateInfo commandPoolCreateInfo = {
+				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+				.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+				.queueFamilyIndex = (uint32_t)mQueueFamily,
+			};
 
-				{
-					VkCommandPoolCreateInfo commandPoolCreateInfo = {
-						.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-						.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-						.queueFamilyIndex = (uint32_t)mQueueFamily,
-					};
+			VK_CALL(vkCreateCommandPool(mDevice, &commandPoolCreateInfo, nullptr, &fd.CommandPool));
 
-					VK_CALL(vkCreateCommandPool(mDevice, &commandPoolCreateInfo, nullptr, &fd.CommandPool));
+			fd.CommandBuffer = AllocateCommandBuffer(fd.CommandPool);
 
-					fd.CommandBuffer = AllocateCommandBuffer(fd.CommandPool);
-				}
+			// Create synchronisation objects 
 
-				// Create synchronisation objects 
+			VkFenceCreateInfo fenceCreateInfo = {
+				.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+				.flags = VK_FENCE_CREATE_SIGNALED_BIT
+			};
 
-				{
-					VkFenceCreateInfo fenceCreateInfo = {
-						.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-						.flags = VK_FENCE_CREATE_SIGNALED_BIT
-					};
+			VkSemaphoreCreateInfo semaphoreCreateInfo = {
+				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+				.flags = 0
+			};
 
-					VkSemaphoreCreateInfo semaphoreCreateInfo = {
-						.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-						.flags = 0
-					};
+			VK_CALL(vkCreateFence(mDevice, &fenceCreateInfo, nullptr, &fd.AcquireNextImageFence));
 
-					VK_CALL(vkCreateFence(mDevice, &fenceCreateInfo, nullptr, &fd.AcquireNextImageFence));
-
-					VK_CALL(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr, &fd.ImageAcquiredSemaphore));
-					VK_CALL(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr, &fd.RenderFinishedSemaphore));
-				}
-			}
+			VK_CALL(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr, &fd.ImageAcquiredSemaphore));
+			VK_CALL(vkCreateSemaphore(mDevice, &semaphoreCreateInfo, nullptr, &fd.RenderFinishedSemaphore));
 		}
 
 		// Initialize VMA
 
-		{
+		VmaAllocatorCreateInfo allocatorCreateInfo = {
+			.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+			.physicalDevice = mPhysicalDevice,
+			.device = mDevice,
+			.instance = mInstance,
+		};
 
-			VmaAllocatorCreateInfo allocatorCreateInfo = {
-				.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
-				.physicalDevice = mPhysicalDevice,
-				.device = mDevice,
-				.instance = mInstance,
-			};
+		VK_CALL(vmaCreateAllocator(&allocatorCreateInfo, &mAllocator));
 
-			VK_CALL(vmaCreateAllocator(&allocatorCreateInfo, &mAllocator));
-		}
+		// Initialize descriptors
 
 		mDescriptorBufferManager = std::make_unique<DescriptorBufferManager>();
 		mDescriptorCache = std::make_unique<DescriptorCache>(*mDescriptorBufferManager);
+
+		// Initialize optick gpu profiling
 
 		OPTICK_GPU_INIT_VULKAN(&mDevice, &mPhysicalDevice, &mQueue, (uint32_t*)&mQueueFamily, 2, nullptr);
 	}

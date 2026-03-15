@@ -163,7 +163,7 @@ namespace Cobalt
 
 			MaterialInfo materialInfo = {
 				.MaterialData = materialData,
-				.Pipeline = Renderer::GetPBRPipeline()
+				/*.Pipeline = Renderer::GetPBRPipeline()*/
 			};
 
 			AssetHandle materialAssetHandle = AssetManager::RegisterMaterial(materialInfo);

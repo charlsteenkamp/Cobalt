@@ -6,8 +6,8 @@
 namespace Cobalt
 {
 
-	Pipeline::Pipeline(const PipelineInfo& info, VkRenderPass renderPass)
-		: mInfo(info), mRenderPass(renderPass)
+	Pipeline::Pipeline(const PipelineInfo& info)
+		: mInfo(info)
 	{
 		CO_PROFILE_FN();
 
@@ -187,21 +187,33 @@ namespace Cobalt
 		};
 
 		const auto& descriptorSetLayouts = mInfo.Shader.GetDescriptorSetLayouts();
-		//const auto& pushConstantRanges   = mInfo.Shader->GetPushConstantRanges();
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.flags = 0,
 			.setLayoutCount = (uint32_t)descriptorSetLayouts.size(),
 			.pSetLayouts = descriptorSetLayouts.data(),
-//			.pushConstantRangeCount = (uint32_t)pushConstantRanges.size(),
-//			.pPushConstantRanges = pushConstantRanges.data()
 		};
 
 		VK_CALL(vkCreatePipelineLayout(GraphicsContext::Get().GetDevice(), &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout));
 
+		std::vector<VkFormat> colorAttachmentFormats;
+		colorAttachmentFormats.reserve(mInfo.ColorAttachments.size());
+
+		for (auto [_, format] : mInfo.ColorAttachments)
+			colorAttachmentFormats.push_back(format);
+
+		VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+			.colorAttachmentCount = (uint32_t)mInfo.ColorAttachments.size(),
+			.pColorAttachmentFormats = colorAttachmentFormats.data(),
+			.depthAttachmentFormat = mInfo.DepthAttachmentFormat,
+			.stencilAttachmentFormat = mInfo.DepthAttachmentFormat,
+		};
+
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			.pNext = &pipelineRenderingCreateInfo,
 			.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT,
 			.stageCount = (uint32_t)shaderStageCreateInfos.size(),
 			.pStages = shaderStageCreateInfos.data(),
@@ -214,7 +226,8 @@ namespace Cobalt
 			.pColorBlendState = &colorBlendStateCreateInfo,
 			.pDynamicState = &dynamicStateCreateInfo,
 			.layout = mPipelineLayout,
-			.renderPass = mRenderPass,
+//			.renderPass = mRenderPass,
+			.renderPass = VK_NULL_HANDLE,
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE,
 			.basePipelineIndex = 0

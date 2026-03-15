@@ -81,7 +81,7 @@ namespace Cobalt
 		sData->Textures.push_back(std::make_unique<Texture>(textureInfo));
 		sData->AssetHandleIdMap[assetHandle] = { EAssetType::Texture, sData->Textures.size() - 1 };
 
-		Renderer::UploadTexture(*sData->Textures.back(), Renderer::GetPBRPipeline());
+		Renderer::UploadTexture(*sData->Textures.back());
 
 		return assetHandle;
 	}
@@ -123,14 +123,14 @@ namespace Cobalt
 		sData->Textures.back()->CopyData(&textureData);
 		sData->AssetHandleIdMap[CO_DEFAULT_TEXTURE_ASSET] = { EAssetType::Texture, 0 };
 
-		Renderer::UploadTexture(*sData->Textures.back(), Renderer::GetPBRPipeline());
+		Renderer::UploadTexture(*sData->Textures.back());
 	}
 
 	void AssetManager::RegisterDefaultMaterial()
 	{
 		CO_PROFILE_FN();
 
-		sData->Materials.push_back(std::make_unique<Material>(MaterialInfo(MaterialData(), Renderer::GetPBRPipeline())));
+		sData->Materials.push_back(std::make_unique<Material>(MaterialInfo(MaterialData()/*, Renderer::GetPBRPipeline()*/)));
 		sData->AssetHandleIdMap[CO_DEFAULT_MATERIAL_ASSET] = { EAssetType::Material, 0 };
 
 		//Renderer::UploadMaterial(CO_DEFAULT_MATERIAL_ASSET, *sData->Materials.back());
