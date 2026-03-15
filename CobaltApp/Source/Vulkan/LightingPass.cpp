@@ -27,11 +27,14 @@ namespace Cobalt
 		mOCRAttachment       = builder.GetResource("OCR Attachment");
 		mEmissiveAttachment  = builder.GetResource("Emissive Attachment");
 
+		auto backbufferAttachment = builder.GetResource("BackBuffer Attachment");
+
 		builder.AddDependency(mPositionAttachment, RGAccessType::ShaderRead);
 		builder.AddDependency(mBaseColorAttachment, RGAccessType::ShaderRead);
 		builder.AddDependency(mNormalAttachment, RGAccessType::ShaderRead);
 		builder.AddDependency(mOCRAttachment, RGAccessType::ShaderRead);
 		builder.AddDependency(mEmissiveAttachment, RGAccessType::ShaderRead);
+		builder.AddDependency(backbufferAttachment, RGAccessType::ColorAttachmentWrite);
 
 		mShader = Renderer::GetShaderLibrary().GetShader("Deferred/LightingPass.slang");
 

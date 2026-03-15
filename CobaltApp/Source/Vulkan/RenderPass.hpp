@@ -1,5 +1,5 @@
 #pragma once
-#include "RenderGraph.hpp"
+#include "RenderGraphBuilder.hpp"
 #include "Renderer.hpp"
 
 namespace Cobalt

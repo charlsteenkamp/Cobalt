@@ -5,6 +5,9 @@
 #include "ShaderCursor.hpp"
 #include "DescriptorBufferManager.hpp"
 
+#include "GeometryPass.hpp"
+#include "LightingPass.hpp"
+
 #include <backends/imgui_impl_vulkan.h>
 
 namespace Cobalt
@@ -258,6 +261,10 @@ namespace Cobalt
 		// Shader compilation
 
 		sData->Shaders = std::make_unique<ShaderLibrary>("CobaltApp/Assets/Shaders");
+
+		sData->RenderGraph->AddPass<GeometryPass>();
+		sData->RenderGraph->AddPass<LightingPass>();
+		sData->RenderGraph->Compile();
 	}
 
 	void Renderer::Shutdown()
@@ -360,7 +367,7 @@ namespace Cobalt
 		sceneDataUniformBuffer.CopyData(&sData->ActiveScene);
 		objectsStorageBuffer.CopyData(sData->Objects.data(), sData->Objects.size() * sizeof(ObjectData));
 
-		sData->RenderGraph->Execute();
+		sData->RenderGraph->Execute(commandBuffer, GetRenderFrameContext());
 
 #if 0
 		const Swapchain& swapchain = GraphicsContext::Get().GetSwapchain();
