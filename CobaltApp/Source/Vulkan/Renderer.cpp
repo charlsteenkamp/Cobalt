@@ -231,188 +231,33 @@ namespace Cobalt
 			};
 
 			VK_CALL(vkCreateRenderPass(GraphicsContext::Get().GetDevice(), &lightingRenderPassCreateInfo, nullptr, &sData->LightingRenderPass));
-
-			// Create attachments
-
-			uint32_t width = GraphicsContext::Get().GetSwapchain().GetExtent().width;
-			uint32_t height = GraphicsContext::Get().GetSwapchain().GetExtent().height;
-
 #endif
 		}
 
 		CreateOrRecreateFramebuffers();
 
-		// Create scene & material uniform buffers & descriptors
-
-		{
-			// Uniform buffers
-
-			uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
-
-			sData->SceneDataUniformBuffers.resize(frameCount);
-			sData->ObjectStorageBuffers.resize(frameCount);
-			sData->MaterialDataStorageBuffers.resize(frameCount);
-
-			for (uint32_t i = 0; i < frameCount; i++)
-			{
-				sData->SceneDataUniformBuffers[i] = VulkanBuffer::CreateMappedBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
-				sData->ObjectStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxObjectCount * sizeof(ObjectData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
-				sData->MaterialDataStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxMaterialCount * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
-			}
-
-			sData->DrawCalls.reserve(sData->sMaxObjectCount);
-			sData->Objects.reserve(sData->sMaxObjectCount);
-			sData->Materials.reserve(sData->sMaxMaterialCount);
-		}
-
-		// Shader compilation & pipeline creation
-
-		sData->Shaders = std::make_unique<ShaderLibrary>("CobaltApp/Assets/Shaders");
-
-		sData->GeometryPassShaderHandle = sData->Shaders->RegisterShader("Deferred/GeometryPass.slang");
-		sData->LightingPassShaderHandle = sData->Shaders->RegisterShader("Deferred/LightingPass.slang");
-
-		Shader* geometryPassShader = sData->Shaders->GetShader(sData->GeometryPassShaderHandle);
-		Shader* lightingPassShader = sData->Shaders->GetShader(sData->LightingPassShaderHandle);
+		// Uniform buffers
 
 		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
 
-		PipelineInfo geometryPassPipelineInfo = {
-			.Shader = *geometryPassShader,
-			.PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-			.CullMode = VK_CULL_MODE_NONE,
-			.FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-			.EnableDepthTesting = true,
-			.ColorAttachments = {
-				{ false }, { false }, { false }, { false }, { false }
-			}
-		};
-
-		sData->GeometryPassPipeline = std::make_unique<Pipeline>(geometryPassPipelineInfo, sData->GeometryRenderPass);
-
-		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
-		sData->GeometryPassDescriptorHandles.resize(frameCount);
+		sData->SceneDataUniformBuffers.resize(frameCount);
+		sData->ObjectStorageBuffers.resize(frameCount);
+		sData->MaterialDataStorageBuffers.resize(frameCount);
 
 		for (uint32_t i = 0; i < frameCount; i++)
 		{
-			sData->GeometryPassDescriptorHandles[i] = descriptorBufferManager.AllocateDescriptor(geometryPassShader->GetDescriptorSetLayouts()[0], true, true);
+			sData->SceneDataUniformBuffers[i] = VulkanBuffer::CreateMappedBuffer(sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
+			sData->ObjectStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxObjectCount * sizeof(ObjectData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
+			sData->MaterialDataStorageBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxMaterialCount * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 		}
 
-		PipelineInfo lightingPassPipelineInfo = {
-			.Shader = *lightingPassShader,
-			.PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-			.CullMode = VK_CULL_MODE_NONE,
-			.FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-			.EnableDepthTesting = true,
-			.ColorAttachments = {
-				{ true }
-			}
-		};
+		sData->DrawCalls.reserve(sData->sMaxObjectCount);
+		sData->Objects.reserve(sData->sMaxObjectCount);
+		sData->Materials.reserve(sData->sMaxMaterialCount);
 
-		sData->LightingPassPipeline = std::make_unique<Pipeline>(lightingPassPipelineInfo, sData->LightingRenderPass);
+		// Shader compilation
 
-		sData->LightingPassDescriptorHandles.resize(frameCount);
-
-		for (uint32_t i = 0; i < frameCount; i++)
-		{
-			sData->LightingPassDescriptorHandles[i] = descriptorBufferManager.AllocateDescriptor(lightingPassShader->GetDescriptorSetLayouts()[0], true, true);
-		}
-
-		// Setup render graph
-
-		RenderGraphBuilder builder;
-
-		uint32_t width  = GraphicsContext::Get().GetSwapchain().GetExtent().width;
-		uint32_t height = GraphicsContext::Get().GetSwapchain().GetExtent().height;
-
-		auto positionAttachment  = builder.AddResource(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
-		auto baseColorAttachment = builder.AddResource(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
-		auto normalAttachment    = builder.AddResource(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
-		auto ocrAttachment       = builder.AddResource(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
-		auto emissiveAttachment  = builder.AddResource(TextureInfo(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT));
-		auto depthAttachment     = builder.AddResource(TextureInfo(width, height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT));
-
-		auto geometryPass = builder.AddPass("Geometry", RGPassType::Graphics);
-		builder.AddDependency(geometryPass, positionAttachment, RGAccessType::ColorAttachmentWrite);
-		builder.AddDependency(geometryPass, baseColorAttachment, RGAccessType::ColorAttachmentWrite);
-		builder.AddDependency(geometryPass, normalAttachment, RGAccessType::ColorAttachmentWrite);
-		builder.AddDependency(geometryPass, ocrAttachment, RGAccessType::ColorAttachmentWrite);
-		builder.AddDependency(geometryPass, emissiveAttachment, RGAccessType::ColorAttachmentWrite);
-		builder.SetExecutionCallback(geometryPass, [&descriptorBufferManager](VkCommandBuffer commandBuffer)
-		{
-			uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
-
-			VulkanBuffer& sceneDataUniformBuffer = *sData->SceneDataUniformBuffers[frameIndex];
-			VulkanBuffer& objectsStorageBuffer = *sData->ObjectStorageBuffers[frameIndex];
-			VulkanBuffer& materialsStorageBuffer = *sData->MaterialDataStorageBuffers[frameIndex];
-
-			ShaderParameter& shaderParameter = sData->Shaders->GetShader(sData->GeometryPassShaderHandle)->GetRootShaderParameter();
-			DescriptorHandle descriptorHandle = sData->GeometryPassDescriptorHandles[frameIndex];
-			
-			ShaderCursor shaderCursor(shaderParameter, descriptorHandle);
-			shaderCursor.Field("scene").Write(sceneDataUniformBuffer);
-			shaderCursor.Field("objects").Write(objectsStorageBuffer);
-			shaderCursor.Field("materials").Write(materialsStorageBuffer);
-			shaderCursor.Field("textures").Write(sData->BindlessImages);
-			shaderCursor.Finalize();
-
-			VkBuffer lastIndexBuffer = VK_NULL_HANDLE;
-			VkPipeline lastPipeline = VK_NULL_HANDLE;
-
-			for (const DrawBatch& batch : BatchDrawCalls())
-			{
-				const VulkanBuffer& indexBuffer = *batch.IndexBuffer;
-				const Pipeline&     pipeline    = batch.Material->GetPipeline();
-
-				if (indexBuffer.GetBuffer() != lastIndexBuffer)
-				{
-					lastIndexBuffer = indexBuffer.GetBuffer();
-					vkCmdBindIndexBuffer(commandBuffer, indexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
-				}
-
-				if (pipeline.GetPipeline() != lastPipeline)
-				{
-					lastPipeline = pipeline.GetPipeline();
-					vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
-					descriptorBufferManager.SetDescriptorBufferOffsets(commandBuffer, pipeline.GetPipelineLayout(), descriptorHandle);
-				}
-
-				vkCmdDrawIndexed(commandBuffer, batch.IndexCount, batch.InstanceCount, batch.FirstIndex, 0, batch.FirstInstance);
-			}
-		});
-
-		auto lightingPass = builder.AddPass("Lighting", RGPassType::Graphics);
-		builder.AddDependency(lightingPass, positionAttachment, RGAccessType::ShaderRead);
-		builder.AddDependency(lightingPass, baseColorAttachment, RGAccessType::ShaderRead);
-		builder.AddDependency(lightingPass, normalAttachment, RGAccessType::ShaderRead);
-		builder.AddDependency(lightingPass, ocrAttachment, RGAccessType::ShaderRead);
-		builder.AddDependency(lightingPass, emissiveAttachment, RGAccessType::ShaderRead);
-		builder.AddDependency(lightingPass, depthAttachment, RGAccessType::ReadWrite);
-		builder.SetExecutionCallback(lightingPass, [&descriptorBufferManager, positionAttachment, baseColorAttachment, normalAttachment, ocrAttachment, emissiveAttachment](VkCommandBuffer commandBuffer)
-		{
-			uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
-
-			VulkanBuffer& sceneDataUniformBuffer = *sData->SceneDataUniformBuffers[frameIndex];
-
-			ShaderParameter& shaderParameter = sData->Shaders->GetShader(sData->LightingPassShaderHandle)->GetRootShaderParameter();
-			DescriptorHandle descriptorHandle = sData->LightingPassDescriptorHandles[frameIndex];
-
-			ShaderCursor lightingPassShaderCursor(shaderParameter, descriptorHandle);
-			lightingPassShaderCursor.Field("scene").Write(sceneDataUniformBuffer);
-			lightingPassShaderCursor.Field("gBuffers")
-				.WriteField("SamplerPosition", sData->RenderGraph->GetResource(positionAttachment))
-				.WriteField("SamplerBaseColor", sData->RenderGraph->GetResource(baseColorAttachment))
-				.WriteField("SamplerNormal", sData->RenderGraph->GetResource(normalAttachment))
-				.WriteField("SamplerOcclusionRoughnessMetallic", sData->RenderGraph->GetResource(ocrAttachment))
-				.WriteField("SamplerEmissive", sData->RenderGraph->GetResource(emissiveAttachment));
-			lightingPassShaderCursor.Finalize();
-
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sData->LightingPassPipeline->GetPipeline());
-			descriptorBufferManager.SetDescriptorBufferOffsets(commandBuffer, sData->LightingPassPipeline->GetPipelineLayout(), descriptorHandle);
-			vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-		});
-
-		builder.Compile();
+		sData->Shaders = std::make_unique<ShaderLibrary>("CobaltApp/Assets/Shaders");
 	}
 
 	void Renderer::Shutdown()
@@ -437,7 +282,21 @@ namespace Cobalt
 		CreateOrRecreateFramebuffers();
 	}
 
-	void Renderer::UploadTexture(const Texture& texture, const Pipeline& pipeline)
+	RenderFrameContext Renderer::GetRenderFrameContext()
+	{
+		CO_PROFILE_FN();
+
+		uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
+
+		return RenderFrameContext {
+			.SceneBuffer    = *sData->SceneDataUniformBuffers[frameIndex],
+			.ObjectBuffer   = *sData->ObjectStorageBuffers[frameIndex],
+			.MaterialBuffer = *sData->MaterialDataStorageBuffers[frameIndex],
+			.BindlessImages = sData->BindlessImages
+		};
+	}
+
+	void Renderer::UploadTexture(const Texture& texture)
 	{
 		CO_PROFILE_FN();
 
@@ -640,6 +499,41 @@ namespace Cobalt
 #endif
 	}
 
+	void Renderer::DrawObjects(VkCommandBuffer commandBuffer, DescriptorHandle descriptorHandle, const Pipeline& pipeline)
+	{
+		CO_PROFILE_FN();
+
+		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
+
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
+		descriptorBufferManager.SetDescriptorBufferOffsets(commandBuffer, pipeline.GetPipelineLayout(), descriptorHandle);
+
+		VkBuffer lastIndexBuffer = VK_NULL_HANDLE;
+		//VkPipeline lastPipeline = VK_NULL_HANDLE;
+
+		for (const DrawBatch& batch : BatchDrawCalls())
+		{
+			const VulkanBuffer& indexBuffer = *batch.IndexBuffer;
+			//const Pipeline&     pipeline    = batch.Material->GetPipeline();
+
+			if (indexBuffer.GetBuffer() != lastIndexBuffer)
+			{
+				lastIndexBuffer = indexBuffer.GetBuffer();
+				vkCmdBindIndexBuffer(commandBuffer, indexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+			}
+
+			/*if (pipeline.GetPipeline() != lastPipeline)
+			{
+				lastPipeline = pipeline.GetPipeline();
+				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
+				descriptorBufferManager.SetDescriptorBufferOffsets(commandBuffer, pipeline.GetPipelineLayout(), descriptorHandle);
+			}*/
+
+			vkCmdDrawIndexed(commandBuffer, batch.IndexCount, batch.InstanceCount, batch.FirstIndex, 0, batch.FirstInstance);
+		}
+	}
+
 	void Renderer::DrawMesh(const Transform& transform, const Mesh* mesh)
 	{
 		CO_PROFILE_FN();
@@ -763,13 +657,13 @@ namespace Cobalt
 			DrawBatch&      lastBatch = batches.back();
 			const DrawCall& currDraw  = sData->DrawCalls[i];
 
-			VkPipeline currPipeline = currDraw.Material->GetPipeline().GetPipeline();
-			VkPipeline lastPipeline = lastBatch.Material->GetPipeline().GetPipeline();
+			//VkPipeline currPipeline = currDraw.Material->GetPipeline().GetPipeline();
+			//VkPipeline lastPipeline = lastBatch.Material->GetPipeline().GetPipeline();
 
 			bool sameIndexBuffer = currDraw.IndexBuffer == lastBatch.IndexBuffer;
-			bool samePipeline    = lastPipeline == currPipeline;
+			//bool samePipeline    = lastPipeline == currPipeline;
 
-			if (sameIndexBuffer && samePipeline)
+			if (sameIndexBuffer /*&& samePipeline*/)
 			{
 				lastBatch.InstanceCount++;
 			}

@@ -1,4 +1,4 @@
-import Common.Common;
+/*import Common.Common;
 import Common.Material;
 import Common.BRDF;
 import Common.Lights;
@@ -67,4 +67,4 @@ float4 FSMain(CoarseVertex coarseVertex: CoarseVertex, uniform StructuredBuffer<
 	
 	return float4(color, 1.0);
 }
-
+*/

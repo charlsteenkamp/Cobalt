@@ -2,12 +2,11 @@
 #include "Shader.hpp"
 
 #include <memory>
+#include <string>
 #include <filesystem>
 
 namespace Cobalt
 {
-
-	using ShaderHandle = uint32_t;
 
 	// Class for shader ownership and retrieval
 
@@ -18,19 +17,31 @@ namespace Cobalt
 		~ShaderLibrary();
 
 	public:
-		ShaderHandle RegisterShader(const std::filesystem::path& relativePath);
+		bool HasShader(const std::string& name) const { return mRegisteredShaders.contains(name); }
 
-		bool HasShader(ShaderHandle shaderHandle) const { return shaderHandle < mRegisteredShaders.size(); }
+		Shader* GetShader(const std::string& name)
+		{
+			if (HasShader(name))
+				return mRegisteredShaders.at(name).get();
 
-		      Shader* GetShader(ShaderHandle shaderHandle);
-		const Shader* GetShader(ShaderHandle shaderHandle) const;
+			return nullptr;
+		}
 
-		      Shader* operator[](ShaderHandle shaderHandle)       { return GetShader(shaderHandle); }
-		const Shader* operator[](ShaderHandle shaderHandle) const { return GetShader(shaderHandle); }
+		const Shader* GetShader(const std::string& name) const
+		{
+			if (HasShader(name))
+				return mRegisteredShaders.at(name).get();
+
+			return nullptr;
+		}
+
+	private:
+		void RegisterAllShaders();
+		void RegisterShader(const std::filesystem::path& relativePath);
 
 	private:
 		std::filesystem::path mShaderDirectory;
-		std::vector<std::unique_ptr<Shader>> mRegisteredShaders;
+		std::unordered_map<std::string, std::unique_ptr<Shader>> mRegisteredShaders;
 	};
 
 }

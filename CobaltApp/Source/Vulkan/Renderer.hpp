@@ -9,7 +9,7 @@
 #include "Mesh.hpp"
 #include "Asset.hpp"
 #include "DescriptorBindings.hpp"
-#include "RenderGraph.h"
+#include "RenderGraph.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -60,6 +60,15 @@ namespace Cobalt
 		uint32_t InstanceCount = 0;
 	};
 
+	struct RenderFrameContext
+	{
+		VulkanBuffer& SceneBuffer;
+		VulkanBuffer& ObjectBuffer;
+		VulkanBuffer& MaterialBuffer;
+
+		std::vector<Image>& BindlessImages;
+	};
+
 	class Renderer
 	{
 	public:
@@ -69,12 +78,14 @@ namespace Cobalt
 		static void OnResize();
 
 	public:
-		//static VkRenderPass GetMainRenderPass() { return sData->MainRenderPass; }
-		static const Pipeline& GetPBRPipeline() { return *sData->GeometryPassPipeline; }
+		static ShaderLibrary& GetShaderLibrary() { return *sData->Shaders; }
+		static RenderGraph& GetRenderGraph() { return *sData->RenderGraph; }
+
+		static RenderFrameContext GetRenderFrameContext();
 
 	public:
 		// Called by Assetmanager
-		static void UploadTexture(const Texture& texture, const Pipeline& pipeline);
+		static void UploadTexture(const Texture& texture);
 
 		// Called by AssetManager whenever a new material is registered, or somewhere else when an existing material's data changes
 		static void UploadMaterial(Material& material);
@@ -84,6 +95,9 @@ namespace Cobalt
 		static void EndScene();
 
 		static void DrawMesh(const Transform& transform, const Mesh* mesh);
+
+	public:
+		static void DrawObjects(VkCommandBuffer commandBuffer, DescriptorHandle descriptorHandle, const Pipeline& pipeline);
 
 	private:
 		static void CreateOrRecreateAttachments();
@@ -105,14 +119,14 @@ namespace Cobalt
 			SceneData ActiveScene;
 
 			std::unique_ptr<ShaderLibrary> Shaders;
-			ShaderHandle PBRShaderHandle;
-			ShaderHandle GeometryPassShaderHandle;
-			ShaderHandle LightingPassShaderHandle;
+			//ShaderHandle PBRShaderHandle;
+			//ShaderHandle GeometryPassShaderHandle;
+			///ShaderHandle LightingPassShaderHandle;
 
 			//std::vector<std::unique_ptr<Pipeline>> Pipelines;
 			//Pipeline* PBRPipeline = nullptr;
-			std::unique_ptr<Pipeline> GeometryPassPipeline;
-			std::unique_ptr<Pipeline> LightingPassPipeline;
+			//std::unique_ptr<Pipeline> GeometryPassPipeline;
+			//std::unique_ptr<Pipeline> LightingPassPipeline;
 
 			// per frame-in-flight
 			std::vector<std::unique_ptr<VulkanBuffer>> SceneDataUniformBuffers;
@@ -122,8 +136,8 @@ namespace Cobalt
 			std::vector<ObjectData>   Objects;
 			std::vector<MaterialData> Materials;
 
-			std::vector<DescriptorHandle> GeometryPassDescriptorHandles;
-			std::vector<DescriptorHandle> LightingPassDescriptorHandles;
+			//std::vector<DescriptorHandle> GeometryPassDescriptorHandles;
+			//std::vector<DescriptorHandle> LightingPassDescriptorHandles;
 
 			std::vector<Image> BindlessImages;
 

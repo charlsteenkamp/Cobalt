@@ -8,6 +8,8 @@ namespace Cobalt
 		: mShaderDirectory(shaderDirectory)
 	{
 		CO_PROFILE_FN();
+
+		RegisterAllShaders();
 	}
 
 	ShaderLibrary::~ShaderLibrary()
@@ -15,32 +17,28 @@ namespace Cobalt
 		CO_PROFILE_FN();
 	}
 
-	ShaderHandle ShaderLibrary::RegisterShader(const std::filesystem::path& relativePath)
+	void ShaderLibrary::RegisterAllShaders()
 	{
 		CO_PROFILE_FN();
+		
+		for (const auto& dirEntry : std::filesystem::recursive_directory_iterator(mShaderDirectory))
+		{
+			if (!dirEntry.is_regular_file())
+				continue;
 
-		mRegisteredShaders.push_back(std::make_unique<Shader>((mShaderDirectory / relativePath).string()));
-		return mRegisteredShaders.size() - 1;
-	}
-	
-	Shader* ShaderLibrary::GetShader(ShaderHandle shaderHandle)
-	{
-		CO_PROFILE_FN();
+			std::filesystem::path relPath = std::filesystem::relative(dirEntry.path(), mShaderDirectory);
 
-		if (!HasShader(shaderHandle))
-			return nullptr;
-
-		return mRegisteredShaders[shaderHandle].get();
+			RegisterShader(relPath);
+		}
 	}
 
-	const Shader* ShaderLibrary::GetShader(ShaderHandle shaderHandle) const
+	void ShaderLibrary::RegisterShader(const std::filesystem::path& relativePath)
 	{
 		CO_PROFILE_FN();
 
-		if (!HasShader(shaderHandle))
-			return nullptr;
+		std::filesystem::path absPath = mShaderDirectory / relativePath;
 
-		return mRegisteredShaders[shaderHandle].get();
+		mRegisteredShaders[relativePath.string()] = std::make_unique<Shader>(absPath.string());
 	}
 
 }
