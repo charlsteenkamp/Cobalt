@@ -1,5 +1,6 @@
 #include "copch.hpp"
 #include "RenderGraph.hpp"
+#include "RenderGraphBuilder.hpp"
 #include "RenderPass.hpp"
 
 #include <algorithm>
@@ -11,25 +12,144 @@ namespace Cobalt
 
 	bool IsWriteRGAccessType(RGAccessType accessType)
 	{
+		CO_PROFILE_FN();
+
 		switch (accessType)
 		{
-			case RGAccessType::ColorAttachmentWrite: return true;
-			case RGAccessType::ShaderRead: return false;
-			case RGAccessType::ReadWrite: return true;
+		case RGAccessType::ColorAttachmentWrite: return true;
+		case RGAccessType::ShaderRead: return false;
+		case RGAccessType::DepthAttachment: return true;
+		case RGAccessType::Present: return true;
 		}
 
 		return false;
 	}
 
+	bool IsReadRGAccessType(RGAccessType accessType)
+	{
+		CO_PROFILE_FN();
+
+		switch (accessType)
+		{
+		case RGAccessType::ColorAttachmentWrite: return false;
+		case RGAccessType::ShaderRead: return true;
+		case RGAccessType::DepthAttachment: return true;
+		case RGAccessType::Present: return false;
+		}
+
+		return false;
+	}
+
+	VkImageUsageFlags RGAccessTypeToVkImageUsage(RGAccessType accessType)
+	{
+		CO_PROFILE_FN();
+
+		switch (accessType)
+		{
+		case RGAccessType::ColorAttachmentWrite: return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		case RGAccessType::ShaderRead: return VK_IMAGE_USAGE_SAMPLED_BIT;
+		case RGAccessType::DepthAttachment: return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		case RGAccessType::Present: return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		}
+
+		return VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
+	}
+
+	struct ResourceAccessInfo
+	{
+		VkPipelineStageFlags2 StageFlags;
+		VkAccessFlags2 AccessMask;
+		VkImageLayout ImageLayout;
+	};
+
+	ResourceAccessInfo GetResourceAccessInfo(const Texture& resource, RGAccessType accessType)
+	{
+		CO_PROFILE_FN();
+
+		ResourceAccessInfo accessInfo;
+
+		switch (accessType)
+		{
+		case RGAccessType::ColorAttachmentWrite:
+		{
+			accessInfo.StageFlags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+			accessInfo.AccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			accessInfo.ImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			return accessInfo;
+		}
+		case RGAccessType::ShaderRead:
+		{
+			accessInfo.StageFlags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+			accessInfo.AccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+			accessInfo.ImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			return accessInfo;
+		}
+		case RGAccessType::DepthAttachment:
+		{
+			accessInfo.StageFlags = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+			accessInfo.StageFlags = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			accessInfo.ImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			return accessInfo;
+		}
+		case RGAccessType::Present:
+		{
+			accessInfo.StageFlags = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+			accessInfo.ImageLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+			return accessInfo;
+		}
+		}
+
+		return accessInfo;
+	}
+
+
+	VkImageMemoryBarrier2 MakeBarrierForResourceTransition(const Texture& resource, RGAccessType prevAccessType, RGAccessType currAccessType)
+	{
+		CO_PROFILE_FN();
+
+		ResourceAccessInfo prevAccess = GetResourceAccessInfo(resource, prevAccessType);
+		ResourceAccessInfo currAccess = GetResourceAccessInfo(resource, currAccessType);
+
+		VkImageMemoryBarrier2 imageMemoryBarrier = {
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			.srcStageMask = prevAccess.StageFlags,
+			.srcAccessMask = prevAccess.AccessMask,
+			.dstStageMask = currAccess.StageFlags,
+			.dstAccessMask = currAccess.AccessMask,
+			.oldLayout = prevAccess.ImageLayout,
+			.newLayout = currAccess.ImageLayout,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = resource.GetImage(),
+			.subresourceRange = {
+				.aspectMask = resource.GetImageAspectFlags(),
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			},
+		};
+
+		return imageMemoryBarrier;
+	}
 
 	RenderGraph::RenderGraph()
 	{
+		CO_PROFILE_FN();
 
+		VkInstance instance = GraphicsContext::Get().GetInstance();
+
+		m_vkCmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdBeginRenderingKHR");
+		m_vkCmdEndRenderingKHR = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdEndRenderingKHR");
 	}
 
 	RenderGraph::~RenderGraph()
 	{
-
+		CO_PROFILE_FN();
 	}
 
 	Texture& RenderGraph::GetResource(RGResourceHandle handle)
@@ -38,13 +158,15 @@ namespace Cobalt
 		return texture;
 	}
 
-	void RenderGraph::SetupPassesAndRecordDependencies(RGResourceTouchList& resourceTouchList)
+	void RenderGraph::SetupPassesAndRecordDependencies(RGResourceTouchList& resourceTouchList, RGPassTouchList& passTouchList)
 	{
 		CO_PROFILE_FN();
 
+		passTouchList.resize(mPasses.size());
+
 		for (RGPassHandle passHandle = 0; passHandle < mPasses.size(); passHandle++)
 		{
-			RenderGraphBuilder builder(mResourceNameHandleMap, mResourceInfos);
+			RenderGraphBuilder builder(passHandle, mResourceNameHandleMap, mResourceInfos, mClearColorMap);
 
 			mPasses[passHandle]->Setup(builder);
 
@@ -54,13 +176,17 @@ namespace Cobalt
 					resourceTouchList.resize(resourceHandle + 1);
 
 				resourceTouchList[resourceHandle].push_back({ passHandle, accessType });
+				passTouchList[passHandle].push_back(RGResourceDependency{ resourceHandle, accessType });
 			}
 		}
 	}
 
-	void RenderGraph::BuildAdjacencyGraph(const RGResourceTouchList& resourceTouchList, RGPassAdjacencyGraph& passAdjacencyGraph, std::vector<RGPassHandle> passInDegree)
+	void RenderGraph::BuildAdjacencyGraph(const RGResourceTouchList& resourceTouchList, RGPassAdjacencyGraph& passAdjacencyGraph, std::vector<RGPassHandle>& passInDegree)
 	{
 		CO_PROFILE_FN();
+
+		passAdjacencyGraph.resize(mPasses.size());
+		passInDegree.resize(mPasses.size());
 
 		for (RGResourceHandle resourceHandle = 0; resourceHandle < resourceTouchList.size(); resourceHandle++)
 		{
@@ -69,7 +195,7 @@ namespace Cobalt
 			if (touches.size() < 2)
 				continue;
 
-			std::sort(touches.begin(), touches.end(), [](auto& a, auto& b) { return a.PassHandle < b.PassHandle; });
+			//std::sort(touches.begin(), touches.end(), [](auto& a, auto& b) { return a.PassHandle < b.PassHandle; });
 
 			bool isTransient = mResourceInfos[resourceHandle].Transient;
 
@@ -101,7 +227,7 @@ namespace Cobalt
 						srcPass = passB;
 						dstPass = passA;
 					}
-					
+
 					// Add an edge from srcPass -> dstPass, and increase the passInDegree if it was inserted
 
 					if (passAdjacencyGraph[srcPass].insert(dstPass).second);
@@ -117,7 +243,14 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
+		// TODO
+
 		neededPasses.resize(mPasses.size());
+
+		for (RGPassHandle passHandle = 0; passHandle < mPasses.size(); passHandle++)
+		{
+			neededPasses[passHandle] = true;
+		}
 	}
 
 	void RenderGraph::SortPasses(const std::vector<bool>& neededPasses, const RGPassAdjacencyGraph& passAdjacencyGraph, std::vector<RGPassHandle> passInDegree)
@@ -156,6 +289,172 @@ namespace Cobalt
 		}
 	}
 
+	void RenderGraph::AllocateResources(const RGResourceTouchList& resourceTouchList)
+	{
+		CO_PROFILE_FN();
+
+		// TODO: work out resource lifetimes
+
+		const auto& swapchain = GraphicsContext::Get().GetSwapchain();
+		uint32_t swapchainWidth = swapchain.GetExtent().width;
+		uint32_t swapchainHeight = swapchain.GetExtent().height;
+		VkFormat swapchainFormat = swapchain.GetSurfaceFormat().format;
+		VkFormat defaultDepthFormat = VK_FORMAT_D32_SFLOAT;
+
+		mResources.resize(mResourceInfos.size());
+
+		for (RGResourceHandle resourceHandle = 0; resourceHandle < mResourceInfos.size(); resourceHandle++)
+		{
+			const auto& resourceInfo = mResourceInfos[resourceHandle];
+
+			if (resourceInfo.SwapchainTarget)
+				continue;
+
+			TextureInfo textureInfo;
+
+			if (resourceInfo.ResourceSizeFlags == RGResourceSizeFlags::SwapchainRelative)
+			{
+				textureInfo.Width = resourceInfo.Width * swapchainWidth;
+				textureInfo.Height = resourceInfo.Height * swapchainHeight;
+			}
+			else
+			{
+				textureInfo.Width = resourceInfo.Width;
+				textureInfo.Height = resourceInfo.Height;
+			}
+
+			switch (resourceInfo.ResourceType)
+			{
+			case RGResourceType::ColorAttachment:
+			{
+				textureInfo.Format = swapchainFormat;
+
+				for (auto [_, accessType] : resourceTouchList[resourceHandle])
+					textureInfo.Usage |= RGAccessTypeToVkImageUsage(accessType);
+
+				break;
+			}
+			case RGResourceType::DepthAttachment:
+			{
+				textureInfo.Format = defaultDepthFormat;
+				break;
+			}
+			}
+
+			mResources[resourceHandle] = std::make_unique<Texture>(textureInfo);
+		}
+	}
+
+	void RenderGraph::BuildCompiledPasses(const RGResourceTouchList& resourceTouchList, const RGPassTouchList& passTouchList, const RGPassAdjacencyGraph& passAdjacencyGraph, const std::vector<bool>& neededPasses)
+	{
+		CO_PROFILE_FN();
+
+		const Swapchain& swapchain = GraphicsContext::Get().GetSwapchain();
+
+		for (RGPassHandle passHandle = 0; passHandle < mPasses.size(); passHandle++)
+		{
+			if (!neededPasses[passHandle])
+				continue;
+
+			RGPassHandle sortedPassHandle = mPassOrder[passHandle];
+
+			RGCompiledPass compiledPass;
+			compiledPass.Pass = mPasses[sortedPassHandle].get();
+			compiledPass.RenderArea = {};
+
+			for (auto [resourceHandle, accessType] : passTouchList[sortedPassHandle])
+			{
+				// Fill in attachment info
+
+				VkRenderingAttachmentInfo renderingAttachmentInfo;
+				renderingAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+
+				if (resourceHandle != RGResourceHandle_BackBufferAttachment)
+				{
+					renderingAttachmentInfo.imageView = mResources[resourceHandle]->GetImageView();
+					renderingAttachmentInfo.imageLayout = mResources[resourceHandle]->GetImageLayout();
+				}
+
+				renderingAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				renderingAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+				if (mClearColorMap.contains({ sortedPassHandle, resourceHandle }))
+				{
+					renderingAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+					renderingAttachmentInfo.clearValue.color = mClearColorMap.at({ sortedPassHandle, resourceHandle });
+				}
+				else if (accessType == RGAccessType::DepthAttachment)
+				{
+					renderingAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+					renderingAttachmentInfo.clearValue = { .depthStencil = { 1.0f, 0 } };
+				}
+				else if (IsReadRGAccessType(accessType))
+				{
+					renderingAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+				}
+
+				if (IsWriteRGAccessType(accessType))
+				{
+					renderingAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+					if (resourceHandle == RGResourceHandle_BackBufferAttachment)
+					{
+						compiledPass.RenderArea.extent = {
+							.width = swapchain.GetExtent().width,
+							.height = swapchain.GetExtent().height
+						};
+					}
+					else
+					{
+						compiledPass.RenderArea.extent = {
+							.width = mResources[resourceHandle]->GetWidth(),
+							.height = mResources[resourceHandle]->GetHeight()
+						};
+					}
+				}
+
+				if (mResourceInfos[resourceHandle].ResourceType == RGResourceType::DepthAttachment)
+					compiledPass.DepthStencilAttachment = renderingAttachmentInfo;
+				else
+					compiledPass.ColorAttachments.push_back(renderingAttachmentInfo);
+
+				// Fill in image barrier info
+
+				uint32_t minDistance = mPasses.size();
+				RGPassHandle lastPassHandle = 0; // sorted
+				RGAccessType lastAccessType;
+
+				bool shouldInsertBarrier = false;
+
+				// Find the last pass that accessed the resource by finding the minimum "distance"
+				// between the current sorted pass and the previous one
+
+				for (auto [otherPassHandle, otherAccessType] : resourceTouchList[resourceHandle])
+				{
+					if (passAdjacencyGraph[otherPassHandle].find(sortedPassHandle) == passAdjacencyGraph[otherPassHandle].end())
+						continue;
+
+					RGPassHandle sortedOtherPassHandle = mPassOrder[otherPassHandle];
+					uint32_t distance = sortedPassHandle - otherPassHandle;
+
+					if (distance < minDistance)
+					{
+						minDistance = distance;
+						lastPassHandle = sortedOtherPassHandle;
+						lastAccessType = otherAccessType;
+
+						shouldInsertBarrier = true;
+					}
+				}
+
+				if (shouldInsertBarrier)
+					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(*mResources[resourceHandle], lastAccessType, accessType));
+			}
+
+			mCompiledPasses.push_back(compiledPass);
+		}
+	}
+
 	void RenderGraph::Compile()
 	{
 		CO_PROFILE_FN();
@@ -163,8 +462,9 @@ namespace Cobalt
 		// Setup passes & record deps
 
 		RGResourceTouchList resourceTouchList;
+		RGPassTouchList passTouchList;
 
-		SetupPassesAndRecordDependencies(resourceTouchList);
+		SetupPassesAndRecordDependencies(resourceTouchList, passTouchList);
 
 		// Build adjacency graph
 
@@ -181,18 +481,21 @@ namespace Cobalt
 
 		// Sort passes
 
-		SortPasses(neededPasses, passAdjacencyGraph, passInDegree);
+		//SortPasses(neededPasses, passAdjacencyGraph, passInDegree);
+		mPassOrder = { 0, 1 };
 		
-		BuildResources();
-		BuildBarriers();
-		BuildCompiledPasses();
+		AllocateResources(resourceTouchList);
+		BuildCompiledPasses(resourceTouchList, passTouchList, passAdjacencyGraph, neededPasses);
 	}
 
 	void RenderGraph::Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderFrameContext)
 	{
 		CO_PROFILE_FN();
 
-		for (const auto& compiledPass : mCompiledPasses)
+		const Swapchain& swapchain = GraphicsContext::Get().GetSwapchain();
+		VkImageView backBufferImageView = swapchain.GetBackBufferViews()[swapchain.GetBackBufferIndex()];
+
+		for (auto& compiledPass : mCompiledPasses)
 		{
 			if (!compiledPass.ImageBarriers.empty())
 			{
@@ -205,6 +508,9 @@ namespace Cobalt
 				vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 			}
 
+			if (compiledPass.BackbufferAttachmentIndex != -1)
+				compiledPass.ColorAttachments[compiledPass.BackbufferAttachmentIndex].imageView = backBufferImageView;
+
 			VkRenderingInfo renderingInfo = {
 				.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 				.renderArea = compiledPass.RenderArea,
@@ -215,9 +521,9 @@ namespace Cobalt
 				.pStencilAttachment = &compiledPass.DepthStencilAttachment,
 			};
 
-			vkCmdBeginRenderingKHR(commandBuffer, &renderingInfo);
+			m_vkCmdBeginRenderingKHR(commandBuffer, &renderingInfo);
 			compiledPass.Pass->Execute(commandBuffer, renderFrameContext);
-			vkCmdEndRenderingKHR(commandBuffer);
+			m_vkCmdEndRenderingKHR(commandBuffer);
 		}
 	}
 

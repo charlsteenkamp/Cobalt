@@ -1,11 +1,12 @@
 #include "copch.hpp"
 #include "RenderGraphBuilder.hpp"
+#include "HashUtils.hpp"
 
 namespace Cobalt
 {
 
-	RenderGraphBuilder::RenderGraphBuilder(RGResourceNameHandleMap& resourceNameHandleMap, std::vector<RGResourceInfo>& resources)
-		: mResourceNameHandleMap(resourceNameHandleMap), mResources(resources)
+	RenderGraphBuilder::RenderGraphBuilder(RGPassHandle passHandle, RGResourceNameHandleMap& resourceNameHandleMap, std::vector<RGResourceInfo>& resources, RGClearColorMap& clearColorMap)
+		: mPassHandle(passHandle), mResourceNameHandleMap(resourceNameHandleMap), mResources(resources), mClearColorMap(clearColorMap)
 	{
 		CO_PROFILE_FN();
 
@@ -50,6 +51,13 @@ namespace Cobalt
 		CO_PROFILE_FN();
 
 		mResourceDependencies.emplace_back(resourceHandle, accessType);
+	}
+
+	void RenderGraphBuilder::SetClearColor(RGResourceHandle resourceHandle, VkClearColorValue clearColor)
+	{
+		CO_PROFILE_FN();
+
+		mClearColorMap[{ mPassHandle, resourceHandle }] = clearColor;
 	}
 
 }

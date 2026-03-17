@@ -32,10 +32,15 @@ namespace Cobalt
 		builder.AddDependency(mNormalAttachment, RGAccessType::ColorAttachmentWrite);
 		builder.AddDependency(mOCRAttachment, RGAccessType::ColorAttachmentWrite);
 		builder.AddDependency(mEmissiveAttachment, RGAccessType::ColorAttachmentWrite);
-		builder.AddDependency(mDepthStencilAttachment, RGAccessType::ReadWrite);
+		builder.AddDependency(mDepthStencilAttachment, RGAccessType::DepthAttachment);
 
-		auto& shaderLibrary = Renderer::GetShaderLibrary();
-		mShader = shaderLibrary.GetShader("Deferred/GeometryPass.slang");
+		builder.SetClearColor(mPositionAttachment);
+		builder.SetClearColor(mBaseColorAttachment);
+		builder.SetClearColor(mNormalAttachment);
+		builder.SetClearColor(mOCRAttachment);
+		builder.SetClearColor(mEmissiveAttachment);
+
+		mShader = Renderer::GetShaderLibrary().GetShader("Deferred\\GeometryPass.slang");
 
 		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
 

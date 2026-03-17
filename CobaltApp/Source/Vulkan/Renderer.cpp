@@ -4,6 +4,7 @@
 #include "AssetManager.hpp"
 #include "ShaderCursor.hpp"
 #include "DescriptorBufferManager.hpp"
+#include "RenderGraph.hpp"
 
 #include "GeometryPass.hpp"
 #include "LightingPass.hpp"
@@ -22,7 +23,7 @@ namespace Cobalt
 
 		sData = new RendererData();
 
-		CreateOrRecreateAttachments();
+		//CreateOrRecreateAttachments();
 
 		// Create the Render Pass
 
@@ -86,7 +87,8 @@ namespace Cobalt
 			info.pDependencies = dependencies;
 
 			VK_CALL(vkCreateRenderPass(GraphicsContext::Get().GetDevice(), &info, nullptr, &sData->MainRenderPass));
-#else
+//#else
+
 			VkAttachmentDescription gBufferAttachment = {
 				.format = VK_FORMAT_R32G32B32A32_SFLOAT,
 				.samples = VK_SAMPLE_COUNT_1_BIT,
@@ -237,7 +239,7 @@ namespace Cobalt
 #endif
 		}
 
-		CreateOrRecreateFramebuffers();
+		//CreateOrRecreateFramebuffers();
 
 		// Uniform buffers
 
@@ -261,6 +263,8 @@ namespace Cobalt
 		// Shader compilation
 
 		sData->Shaders = std::make_unique<ShaderLibrary>("CobaltApp/Assets/Shaders");
+
+		sData->RenderGraph = std::make_unique<RenderGraph>();
 
 		sData->RenderGraph->AddPass<GeometryPass>();
 		sData->RenderGraph->AddPass<LightingPass>();

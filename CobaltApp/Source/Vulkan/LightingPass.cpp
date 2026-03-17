@@ -2,6 +2,7 @@
 #include "LightingPass.hpp"
 #include "GraphicsContext.hpp"
 #include "Renderer.hpp"
+#include "RenderGraph.hpp"
 
 namespace Cobalt
 {
@@ -34,9 +35,9 @@ namespace Cobalt
 		builder.AddDependency(mNormalAttachment, RGAccessType::ShaderRead);
 		builder.AddDependency(mOCRAttachment, RGAccessType::ShaderRead);
 		builder.AddDependency(mEmissiveAttachment, RGAccessType::ShaderRead);
-		builder.AddDependency(backbufferAttachment, RGAccessType::ColorAttachmentWrite);
+		builder.AddDependency(backbufferAttachment, RGAccessType::Present);
 
-		mShader = Renderer::GetShaderLibrary().GetShader("Deferred/LightingPass.slang");
+		mShader = Renderer::GetShaderLibrary().GetShader("Deferred\\LightingPass.slang");
 
 		PipelineInfo lightingPassPipelineInfo = {
 			.Shader = *mShader,

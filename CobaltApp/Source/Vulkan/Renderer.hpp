@@ -9,7 +9,7 @@
 #include "Mesh.hpp"
 #include "Asset.hpp"
 #include "DescriptorBindings.hpp"
-#include "RenderGraph.hpp"
+#include "RenderGraphBuilder.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -68,6 +68,8 @@ namespace Cobalt
 
 		std::vector<Image>& BindlessImages;
 	};
+
+	class RenderGraph;
 
 	class Renderer
 	{
