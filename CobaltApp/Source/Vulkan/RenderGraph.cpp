@@ -104,9 +104,9 @@ namespace Cobalt
 			}
 			case RGAccessType::Present:
 			{
-				accessInfo.StageFlags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-				accessInfo.AccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-				accessInfo.ImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				accessInfo.StageFlags = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+				accessInfo.AccessMask = 0;
+				accessInfo.ImageLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 				return accessInfo;
 			}
@@ -490,11 +490,14 @@ namespace Cobalt
 				// A barrier should also be inserted if it's the back buffer
 
 				if (shouldInsertBarrier)
+				{
 					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(mResources[resourceHandle]->GetImage(), mResources[resourceHandle]->GetImageAspectFlags(), lastAccessType, accessType));
+				}
 				else if (compiledPass.BackbufferAttachmentIndex == compiledPass.ColorAttachments.size() - 1)
 				{
-					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(VK_NULL_HANDLE, VK_IMAGE_ASPECT_COLOR_BIT, RGAccessType::None, RGAccessType::Present));
-					compiledPass.BackBufferBarrierIndex = compiledPass.ImageBarriers.size() - 1;
+					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(VK_NULL_HANDLE, VK_IMAGE_ASPECT_COLOR_BIT, RGAccessType::None, RGAccessType::ColorAttachmentWrite));
+					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(VK_NULL_HANDLE, VK_IMAGE_ASPECT_COLOR_BIT, RGAccessType::ColorAttachmentWrite, RGAccessType::Present));
+					compiledPass.BackBufferBarrierIndices = { (int32_t)compiledPass.ImageBarriers.size() - 1, (int32_t)compiledPass.ImageBarriers.size() - 2 };
 				}
 			}
 
@@ -547,8 +550,10 @@ namespace Cobalt
 		{
 			if (!compiledPass.ImageBarriers.empty())
 			{
-				if (compiledPass.BackBufferBarrierIndex != -1)
-					compiledPass.ImageBarriers[compiledPass.BackBufferBarrierIndex].image = backBufferImage;
+				for (uint32_t i : compiledPass.BackBufferBarrierIndices)
+				{
+					compiledPass.ImageBarriers[i].image = backBufferImage;
+				}
 
 				VkDependencyInfo dependencyInfo = {
 					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,

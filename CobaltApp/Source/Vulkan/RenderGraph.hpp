@@ -21,7 +21,7 @@ namespace Cobalt
 		VkRenderingAttachmentInfo DepthStencilAttachment;
 
 		int32_t BackbufferAttachmentIndex = -1;
-		int32_t BackBufferBarrierIndex = -1;
+		std::vector<int32_t> BackBufferBarrierIndices;
 		bool HasDepthAttachment = false;
 		bool HasStencilAttachment = false;
 
