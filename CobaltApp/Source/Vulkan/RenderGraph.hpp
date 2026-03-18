@@ -17,10 +17,13 @@ namespace Cobalt
 		std::vector<VkImageMemoryBarrier2> ImageBarriers;
 
 		VkRect2D RenderArea;
-		std::vector<VkRenderingAttachmentInfoKHR> ColorAttachments;
+		std::vector<VkRenderingAttachmentInfo> ColorAttachments;
 		VkRenderingAttachmentInfo DepthStencilAttachment;
 
 		int32_t BackbufferAttachmentIndex = -1;
+		int32_t BackBufferBarrierIndex = -1;
+		bool HasDepthAttachment = false;
+		bool HasStencilAttachment = false;
 
 		RenderPass* Pass;
 	};

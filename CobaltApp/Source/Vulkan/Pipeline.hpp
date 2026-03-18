@@ -25,6 +25,7 @@ namespace Cobalt
 
 		std::vector<ColorAttachment> ColorAttachments;
 		VkFormat DepthAttachmentFormat = VK_FORMAT_UNDEFINED;
+		VkFormat StencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 	};
 
 	class Pipeline

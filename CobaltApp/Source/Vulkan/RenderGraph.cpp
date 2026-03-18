@@ -62,7 +62,7 @@ namespace Cobalt
 		VkImageLayout ImageLayout;
 	};
 
-	ResourceAccessInfo GetResourceAccessInfo(const Texture& resource, RGAccessType accessType)
+	ResourceAccessInfo GetResourceAccessInfo(RGAccessType accessType)
 	{
 		CO_PROFILE_FN();
 
@@ -70,49 +70,74 @@ namespace Cobalt
 
 		switch (accessType)
 		{
-		case RGAccessType::ColorAttachmentWrite:
-		{
-			accessInfo.StageFlags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-			accessInfo.AccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-			accessInfo.ImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			case RGAccessType::None:
+			{
+				accessInfo.StageFlags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+				accessInfo.AccessMask = 0;
+				accessInfo.ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-			return accessInfo;
-		}
-		case RGAccessType::ShaderRead:
-		{
-			accessInfo.StageFlags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-			accessInfo.AccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-			accessInfo.ImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				return accessInfo;
+			}
+			case RGAccessType::ColorAttachmentWrite:
+			{
+				accessInfo.StageFlags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+				accessInfo.AccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+				accessInfo.ImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-			return accessInfo;
-		}
-		case RGAccessType::DepthAttachment:
-		{
-			accessInfo.StageFlags = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
-			accessInfo.StageFlags = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			accessInfo.ImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				return accessInfo;
+			}
+			case RGAccessType::ShaderRead:
+			{
+				accessInfo.StageFlags = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+				accessInfo.AccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+				accessInfo.ImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-			return accessInfo;
-		}
-		case RGAccessType::Present:
-		{
-			accessInfo.StageFlags = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
-			accessInfo.ImageLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+				return accessInfo;
+			}
+			case RGAccessType::DepthAttachment:
+			{
+				accessInfo.StageFlags = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+				accessInfo.StageFlags = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				accessInfo.ImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-			return accessInfo;
-		}
+				return accessInfo;
+			}
+			case RGAccessType::Present:
+			{
+				accessInfo.StageFlags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+				accessInfo.AccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+				accessInfo.ImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+				return accessInfo;
+			}
 		}
 
 		return accessInfo;
 	}
 
-
-	VkImageMemoryBarrier2 MakeBarrierForResourceTransition(const Texture& resource, RGAccessType prevAccessType, RGAccessType currAccessType)
+	bool IsDepthStencilFormat(VkFormat format)
 	{
 		CO_PROFILE_FN();
 
-		ResourceAccessInfo prevAccess = GetResourceAccessInfo(resource, prevAccessType);
-		ResourceAccessInfo currAccess = GetResourceAccessInfo(resource, currAccessType);
+		switch (format)
+		{
+			case VK_FORMAT_D16_UNORM: return false;
+			case VK_FORMAT_D32_SFLOAT: return false;
+			case VK_FORMAT_D16_UNORM_S8_UINT: return true;
+			case VK_FORMAT_D24_UNORM_S8_UINT: return true;
+			case VK_FORMAT_D32_SFLOAT_S8_UINT: return true;
+		}
+
+		return false;
+	}
+
+
+	VkImageMemoryBarrier2 MakeBarrierForResourceTransition(VkImage image, VkImageAspectFlags imageAspect, RGAccessType prevAccessType, RGAccessType currAccessType)
+	{
+		CO_PROFILE_FN();
+
+		ResourceAccessInfo prevAccess = GetResourceAccessInfo(prevAccessType);
+		ResourceAccessInfo currAccess = GetResourceAccessInfo(currAccessType);
 
 		VkImageMemoryBarrier2 imageMemoryBarrier = {
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -124,9 +149,9 @@ namespace Cobalt
 			.newLayout = currAccess.ImageLayout,
 			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = resource.GetImage(),
+			.image = image,
 			.subresourceRange = {
-				.aspectMask = resource.GetImageAspectFlags(),
+				.aspectMask = imageAspect,
 				.baseMipLevel = 0,
 				.levelCount = 1,
 				.baseArrayLayer = 0,
@@ -141,10 +166,10 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		VkInstance instance = GraphicsContext::Get().GetInstance();
+		VkDevice device = GraphicsContext::Get().GetDevice();
 
-		m_vkCmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdBeginRenderingKHR");
-		m_vkCmdEndRenderingKHR = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdEndRenderingKHR");
+		m_vkCmdBeginRenderingKHR = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdBeginRenderingKHR"));
+		m_vkCmdEndRenderingKHR = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetDeviceProcAddr(device, "vkCmdEndRenderingKHR"));
 	}
 
 	RenderGraph::~RenderGraph()
@@ -154,8 +179,9 @@ namespace Cobalt
 
 	Texture& RenderGraph::GetResource(RGResourceHandle handle)
 	{
-		Texture texture(TextureInfo(""));
-		return texture;
+		CO_PROFILE_FN();
+
+		return *mResources[handle];
 	}
 
 	void RenderGraph::SetupPassesAndRecordDependencies(RGResourceTouchList& resourceTouchList, RGPassTouchList& passTouchList)
@@ -301,6 +327,8 @@ namespace Cobalt
 		VkFormat swapchainFormat = swapchain.GetSurfaceFormat().format;
 		VkFormat defaultDepthFormat = VK_FORMAT_D32_SFLOAT;
 
+		VkFormat defaultColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+
 		mResources.resize(mResourceInfos.size());
 
 		for (RGResourceHandle resourceHandle = 0; resourceHandle < mResourceInfos.size(); resourceHandle++)
@@ -325,20 +353,21 @@ namespace Cobalt
 
 			switch (resourceInfo.ResourceType)
 			{
-			case RGResourceType::ColorAttachment:
-			{
-				textureInfo.Format = swapchainFormat;
+				case RGResourceType::ColorAttachment:
+				{
+					textureInfo.Format = defaultColorFormat;
 
-				for (auto [_, accessType] : resourceTouchList[resourceHandle])
-					textureInfo.Usage |= RGAccessTypeToVkImageUsage(accessType);
+					for (auto [_, accessType] : resourceTouchList[resourceHandle])
+						textureInfo.Usage |= RGAccessTypeToVkImageUsage(accessType);
 
-				break;
-			}
-			case RGResourceType::DepthAttachment:
-			{
-				textureInfo.Format = defaultDepthFormat;
-				break;
-			}
+					break;
+				}
+				case RGResourceType::DepthAttachment:
+				{
+					textureInfo.Format = defaultDepthFormat;
+					textureInfo.Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+					break;
+				}
 			}
 
 			mResources[resourceHandle] = std::make_unique<Texture>(textureInfo);
@@ -364,15 +393,23 @@ namespace Cobalt
 
 			for (auto [resourceHandle, accessType] : passTouchList[sortedPassHandle])
 			{
+				if (IsReadRGAccessType(accessType) && accessType != RGAccessType::DepthAttachment)
+					continue;
+
 				// Fill in attachment info
 
-				VkRenderingAttachmentInfo renderingAttachmentInfo;
+				VkRenderingAttachmentInfo renderingAttachmentInfo{};
 				renderingAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
-				if (resourceHandle != RGResourceHandle_BackBufferAttachment)
+				if (resourceHandle == RGResourceHandle_BackBufferAttachment)
+				{
+					compiledPass.BackbufferAttachmentIndex = compiledPass.ColorAttachments.size();
+					renderingAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				}
+				else
 				{
 					renderingAttachmentInfo.imageView = mResources[resourceHandle]->GetImageView();
-					renderingAttachmentInfo.imageLayout = mResources[resourceHandle]->GetImageLayout();
+					renderingAttachmentInfo.imageLayout = GetResourceAccessInfo(accessType).ImageLayout;
 				}
 
 				renderingAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -387,6 +424,9 @@ namespace Cobalt
 				{
 					renderingAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 					renderingAttachmentInfo.clearValue = { .depthStencil = { 1.0f, 0 } };
+
+					compiledPass.HasDepthAttachment = true;
+					compiledPass.HasStencilAttachment = IsDepthStencilFormat(mResources[resourceHandle]->GetFormat());
 				}
 				else if (IsReadRGAccessType(accessType))
 				{
@@ -447,8 +487,15 @@ namespace Cobalt
 					}
 				}
 
+				// A barrier should also be inserted if it's the back buffer
+
 				if (shouldInsertBarrier)
-					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(*mResources[resourceHandle], lastAccessType, accessType));
+					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(mResources[resourceHandle]->GetImage(), mResources[resourceHandle]->GetImageAspectFlags(), lastAccessType, accessType));
+				else if (compiledPass.BackbufferAttachmentIndex == compiledPass.ColorAttachments.size() - 1)
+				{
+					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(VK_NULL_HANDLE, VK_IMAGE_ASPECT_COLOR_BIT, RGAccessType::None, RGAccessType::Present));
+					compiledPass.BackBufferBarrierIndex = compiledPass.ImageBarriers.size() - 1;
+				}
 			}
 
 			mCompiledPasses.push_back(compiledPass);
@@ -493,12 +540,16 @@ namespace Cobalt
 		CO_PROFILE_FN();
 
 		const Swapchain& swapchain = GraphicsContext::Get().GetSwapchain();
+		VkImage backBufferImage = swapchain.GetBackBuffers()[swapchain.GetBackBufferIndex()];
 		VkImageView backBufferImageView = swapchain.GetBackBufferViews()[swapchain.GetBackBufferIndex()];
 
 		for (auto& compiledPass : mCompiledPasses)
 		{
 			if (!compiledPass.ImageBarriers.empty())
 			{
+				if (compiledPass.BackBufferBarrierIndex != -1)
+					compiledPass.ImageBarriers[compiledPass.BackBufferBarrierIndex].image = backBufferImage;
+
 				VkDependencyInfo dependencyInfo = {
 					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 					.imageMemoryBarrierCount = (uint32_t)compiledPass.ImageBarriers.size(),
@@ -517,8 +568,8 @@ namespace Cobalt
 				.layerCount = 1,
 				.colorAttachmentCount = (uint32_t)compiledPass.ColorAttachments.size(),
 				.pColorAttachments = compiledPass.ColorAttachments.data(),
-				.pDepthAttachment = &compiledPass.DepthStencilAttachment,
-				.pStencilAttachment = &compiledPass.DepthStencilAttachment,
+				.pDepthAttachment = compiledPass.HasDepthAttachment ? &compiledPass.DepthStencilAttachment : nullptr,
+				.pStencilAttachment = compiledPass.HasStencilAttachment ? &compiledPass.DepthStencilAttachment : nullptr,
 			};
 
 			m_vkCmdBeginRenderingKHR(commandBuffer, &renderingInfo);

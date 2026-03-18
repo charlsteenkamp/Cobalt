@@ -208,7 +208,7 @@ namespace Cobalt
 			.colorAttachmentCount = (uint32_t)mInfo.ColorAttachments.size(),
 			.pColorAttachmentFormats = colorAttachmentFormats.data(),
 			.depthAttachmentFormat = mInfo.DepthAttachmentFormat,
-			.stencilAttachmentFormat = mInfo.DepthAttachmentFormat,
+			.stencilAttachmentFormat = mInfo.StencilAttachmentFormat,
 		};
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {

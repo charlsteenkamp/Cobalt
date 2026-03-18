@@ -135,11 +135,27 @@ namespace Cobalt
 
 		// Create logical device
 
-		const char* deviceExtensions[] = { "VK_KHR_swapchain", VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME };
+		const char* deviceExtensions[] = {
+			"VK_KHR_swapchain",
+			VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
+			VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+			VK_KHR_MULTIVIEW_EXTENSION_NAME,
+			VK_KHR_MAINTENANCE2_EXTENSION_NAME,
+			VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+			VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME,
+			VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME
+		};
+
 		const float queuePriority[] = { 1.0f };
+
+		VkPhysicalDeviceSynchronization2Features synchronization2Features = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+			.synchronization2 = VK_TRUE
+		};
 
 		VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+			.pNext = (void*)&synchronization2Features,
 			.dynamicRendering = VK_TRUE
 		};
 
@@ -186,7 +202,7 @@ namespace Cobalt
 			.pNext = &shaderDrawParametersFeatures,
 			.queueCreateInfoCount = 1,
 			.pQueueCreateInfos = queueCreateInfo,
-			.enabledExtensionCount = 3,
+			.enabledExtensionCount = 8,
 			.ppEnabledExtensionNames = deviceExtensions,
 			.pEnabledFeatures = &physicalDeviceFeatures
 		};

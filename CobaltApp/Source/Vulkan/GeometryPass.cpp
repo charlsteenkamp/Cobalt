@@ -56,7 +56,8 @@ namespace Cobalt
 				{ false, VK_FORMAT_R32G32B32A32_SFLOAT },
 				{ false, VK_FORMAT_R32G32B32A32_SFLOAT },
 				{ false, VK_FORMAT_R32G32B32A32_SFLOAT }
-			}
+			},
+			.DepthAttachmentFormat = VK_FORMAT_D32_SFLOAT
 		};
 
 		mPipeline = std::make_unique<Pipeline>(pipelineInfo);
@@ -73,6 +74,24 @@ namespace Cobalt
 	void GeometryPass::Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderContext)
 	{
 		CO_PROFILE_FN();
+
+		VkExtent2D extent = GraphicsContext::Get().GetSwapchain().GetExtent();
+
+		VkViewport viewport = {
+			.x = 0,
+			.y = (float)extent.height,
+			.width = (float)extent.width,
+			.height = -(float)extent.height,
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f
+		};
+
+		VkRect2D scissor = {
+			.extent = extent
+		};
+
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
 

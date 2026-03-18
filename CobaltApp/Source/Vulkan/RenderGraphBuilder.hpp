@@ -20,7 +20,8 @@ namespace Cobalt
 		ShaderRead,
 		ColorAttachmentWrite,
 		DepthAttachment,
-		Present
+		Present,
+		None
 	};
 
 	enum class RGResourceType

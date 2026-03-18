@@ -46,7 +46,7 @@ namespace Cobalt
 			.FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 			.EnableDepthTesting = true,
 			.ColorAttachments = {
-				{ true, VK_FORMAT_R32G32B32A32_SFLOAT }
+				{ true, GraphicsContext::Get().GetSwapchain().GetSurfaceFormat().format }
 			}
 		};
 
@@ -66,6 +66,24 @@ namespace Cobalt
 	void LightingPass::Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderContext)
 	{
 		CO_PROFILE_FN();
+
+		VkExtent2D extent = GraphicsContext::Get().GetSwapchain().GetExtent();
+
+		VkViewport viewport = {
+			.x = 0,
+			.y = (float)extent.height,
+			.width = (float)extent.width,
+			.height = -(float)extent.height,
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f
+		};
+
+		VkRect2D scissor = {
+			.extent = extent
+		};
+
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
 		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
