@@ -8,7 +8,7 @@ namespace Cobalt
 {
 
 	LightingPass::LightingPass()
-		: RenderPass("Lighting Pass", true)
+		: RenderPass("Lighting Pass", "Deferred/LightingPass.slang", (RenderPassFlags)RenderPassFlagBits::SideAffect)
 	{
 		CO_PROFILE_FN();
 	}
@@ -44,12 +44,15 @@ namespace Cobalt
 			.PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 			.CullMode = VK_CULL_MODE_NONE,
 			.FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-			.EnableDepthTesting = true,
+			.EnableDepthTesting = false,
 			.ColorAttachments = {
 				{ true, GraphicsContext::Get().GetSwapchain().GetSurfaceFormat().format }
 			}
 		};
 
+		GraphicsContext::Get().GetPipelineRegistry().BuildPipeline(mName, lightingPassPipelineInfo);
+
+#if 0
 		mPipeline = std::make_unique<Pipeline>(lightingPassPipelineInfo);
 
 		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
@@ -61,6 +64,7 @@ namespace Cobalt
 		{
 			mDescriptorHandles[i] = descriptorBufferManager.AllocateDescriptor(mShader->GetDescriptorSetLayouts()[0], true, true);
 		}
+#endif
 	}
 
 	void LightingPass::Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderContext)

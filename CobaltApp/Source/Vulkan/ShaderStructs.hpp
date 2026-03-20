@@ -14,19 +14,19 @@
 namespace Cobalt
 {
 
-	struct CameraData
+	struct GPUCamera
 	{
 		glm::mat4 ViewProjectionMatrix;
 		alignas(16) glm::vec3 CameraTranslation;
 	};
 
-	struct DirectionalLightData
+	struct GPUDirectionalLight
 	{
 		alignas(16) glm::vec3 Direction;
 		alignas(16) glm::vec3 Intensity;
 	};
 
-	struct PointLightData
+	struct GPUPointLight
 	{
 		alignas(16) glm::vec3 Position;
 
@@ -41,18 +41,18 @@ namespace Cobalt
 		float __padding0;
 	};
 
-	struct SceneData
+	struct GPUScene
 	{
-		CameraData Camera;
-		DirectionalLightData DirectionalLight;
+		GPUCamera Camera;
+		GPUDirectionalLight DirectionalLight;
 		//PointLightData PointLights[CO_MAX_POINT_LIGHT_COUNT];
 		//uint32_t PointLightCount;
 	};
 
 
-	struct ObjectData
+	struct GPUObject
 	{
-		ObjectData(const glm::mat4& transform, const Mesh* mesh)
+		GPUObject(const glm::mat4& transform, const Mesh* mesh)
 			: Transform(transform), NormalMatrix(glm::transpose(glm::inverse(transform))),
 			  VertexBufferRef(mesh->GetVertexBufferReference()), MaterialHandle(mesh->GetMaterial()->GetMaterialHandle())
 		{
@@ -65,6 +65,6 @@ namespace Cobalt
 		float __padding[1]{};
 	};
 
-	static_assert(sizeof(ObjectData) == 144);
+	static_assert(sizeof(GPUObject) == 144);
 }
 

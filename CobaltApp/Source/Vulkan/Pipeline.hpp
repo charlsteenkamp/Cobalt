@@ -24,7 +24,7 @@ namespace Cobalt
 		bool EnableDepthTesting = true;
 
 		std::vector<ColorAttachment> ColorAttachments;
-		VkFormat DepthAttachmentFormat = VK_FORMAT_UNDEFINED;
+		VkFormat DepthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
 		VkFormat StencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 	};
 
@@ -38,6 +38,8 @@ namespace Cobalt
 		void Invalidate();
 
 	public:
+		const PipelineInfo& GetInfo() const { return mInfo; }
+
 		VkPipeline GetPipeline() const { return mPipeline; }
 		VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
 	

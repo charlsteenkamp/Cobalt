@@ -39,7 +39,11 @@ namespace Cobalt
 		~RenderGraph();
 
 	public:
-		Texture& GetResource(RGResourceHandle handle);
+		Texture& GetResource(RGResourceHandle handle) const;
+
+		std::vector<Texture*> GetPassOutputAttachments(const std::string& passName) const;
+
+		const std::vector<std::unique_ptr<RenderPass>>& GetPasses() const { return mPasses; }
 
 	public:
 		template<typename T>
@@ -48,6 +52,7 @@ namespace Cobalt
 			static_assert(std::is_base_of<RenderPass, T>::value);
 
 			mPasses.push_back(std::make_unique<T>());
+			mNamePassHandleMap[mPasses.back()->GetName()] = mPasses.size() - 1;
 		}
 
 	public:
@@ -66,9 +71,17 @@ namespace Cobalt
 	private:
 		RGResourceNameHandleMap mResourceNameHandleMap;
 		RGClearColorMap mClearColorMap;
+
+		RGResourceTouchList mResourceTouchList;
+		RGPassTouchList mPassTouchList;
+		RGPassAdjacencyGraph mPassAdjacencyGraph;
+		std::vector<bool> mNeededPasses;
+		std::vector<RGPassHandle> mPassInDegree;
+
 		std::vector<RGResourceInfo> mResourceInfos;
 		std::vector<std::unique_ptr<Texture>> mResources;
 
+		std::unordered_map<std::string, RGPassHandle> mNamePassHandleMap;
 		std::vector<std::unique_ptr<RenderPass>> mPasses;
 		std::vector<RGPassHandle> mPassOrder;
 		std::vector<RGCompiledPass> mCompiledPasses;

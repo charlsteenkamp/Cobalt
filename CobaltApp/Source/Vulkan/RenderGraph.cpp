@@ -177,11 +177,32 @@ namespace Cobalt
 		CO_PROFILE_FN();
 	}
 
-	Texture& RenderGraph::GetResource(RGResourceHandle handle)
+	Texture& RenderGraph::GetResource(RGResourceHandle handle) const
 	{
 		CO_PROFILE_FN();
 
 		return *mResources[handle];
+	}
+
+	std::vector<Texture*> RenderGraph::GetPassOutputAttachments(const std::string& passName) const
+	{
+		CO_PROFILE_FN();
+
+		if (!mNamePassHandleMap.contains(passName))
+			return {};
+
+		const auto& passTouches = mPassTouchList[mNamePassHandleMap.at(passName)];
+
+		std::vector<Texture*> outputAttachments;
+		outputAttachments.reserve(passTouches.size());
+
+		for (const auto& [resourceHandle, accessType] : passTouches)
+		{
+			if (IsWriteRGAccessType(accessType))
+				outputAttachments.push_back(mResources[resourceHandle].get());
+		}
+		
+		return outputAttachments;
 	}
 
 	void RenderGraph::SetupPassesAndRecordDependencies(RGResourceTouchList& resourceTouchList, RGPassTouchList& passTouchList)
@@ -536,6 +557,12 @@ namespace Cobalt
 		
 		AllocateResources(resourceTouchList);
 		BuildCompiledPasses(resourceTouchList, passTouchList, passAdjacencyGraph, neededPasses);
+
+		mResourceTouchList = resourceTouchList;
+		mPassTouchList = passTouchList;
+		mPassAdjacencyGraph = passAdjacencyGraph;
+		mNeededPasses = neededPasses;
+		mPassInDegree = passInDegree;
 	}
 
 	void RenderGraph::Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderFrameContext)

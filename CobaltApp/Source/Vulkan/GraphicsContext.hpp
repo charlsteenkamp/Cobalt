@@ -3,6 +3,7 @@
 #include "Swapchain.hpp"
 #include "DescriptorBufferManager.hpp"
 #include "DescriptorCache.hpp"
+#include "PipelineRegistry.hpp"
 #include "Module.hpp"
 
 #define GLFW_INCLUDE_NONE
@@ -46,6 +47,7 @@ namespace Cobalt
 		const DescriptorBufferManager& GetDescriptorBufferManager() const { return *mDescriptorBufferManager; }
 
 		DescriptorCache& GetDescriptorCache() { return *mDescriptorCache; }
+		PipelineRegistry& GetPipelineRegistry() { return *mPipelineRegistry; }
 
 		VmaAllocator GetAllocator() const { return mAllocator; }
 
@@ -101,6 +103,7 @@ namespace Cobalt
 
 		std::unique_ptr<DescriptorBufferManager> mDescriptorBufferManager;
 		std::unique_ptr<DescriptorCache> mDescriptorCache;
+		std::unique_ptr<PipelineRegistry> mPipelineRegistry;
 
 
 		bool mRecreateSwapchain = false;

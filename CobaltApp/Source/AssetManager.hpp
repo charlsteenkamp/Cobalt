@@ -20,16 +20,12 @@ namespace Cobalt
 	public:
 		static Texture* GetTexture(AssetHandle textureHandle);
 		static Mesh* GetMesh(AssetHandle meshHandle);
-		static Material* GetMaterial(AssetHandle materialHandle);
 
 	public:
 		static AssetHandle RegisterTexture(const TextureInfo& textureInfo);
 		static AssetHandle RegisterMesh(const MeshInfo& meshInfo);
-		static AssetHandle RegisterMaterial(const MaterialInfo& materialInfo);
 
 	private:
-		static void RegisterDefaultTexture();
-		static void RegisterDefaultMaterial();
 
 	private:
 		struct AssetIdentifier
@@ -40,9 +36,8 @@ namespace Cobalt
 
 		struct AssetManagerData
 		{
-			std::vector<std::unique_ptr<Texture>>  Textures;
-			std::vector<std::unique_ptr<Mesh>>     Meshes;
-			std::vector<std::unique_ptr<Material>> Materials;
+			std::vector<std::unique_ptr<Texture>> Textures;
+			std::vector<std::unique_ptr<Mesh>>    Meshes;
 
 			std::unordered_map<AssetHandle, AssetIdentifier> AssetHandleIdMap;
 		};

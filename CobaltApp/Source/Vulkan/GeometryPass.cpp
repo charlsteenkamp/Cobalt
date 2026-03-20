@@ -6,7 +6,7 @@ namespace Cobalt
 {
 
 	GeometryPass::GeometryPass()
-		: RenderPass("Geometry Pass", false)
+		: RenderPass("Geometry Pass", "Deferred/GeometryPass.slang", (RenderPassFlags)RenderPassFlagBits::MeshPass)
 	{
 		CO_PROFILE_FN();
 	}
@@ -40,6 +40,7 @@ namespace Cobalt
 		builder.SetClearColor(mOCRAttachment);
 		builder.SetClearColor(mEmissiveAttachment);
 
+#if 0
 		mShader = Renderer::GetShaderLibrary().GetShader("Deferred\\GeometryPass.slang");
 
 		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
@@ -69,6 +70,7 @@ namespace Cobalt
 		{
 			mDescriptorHandles[i] = descriptorBufferManager.AllocateDescriptor(mShader->GetDescriptorSetLayouts()[0], true, true);
 		}
+#endif
 	}
 
 	void GeometryPass::Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderContext)
