@@ -1,3 +1,4 @@
+#if 0
 #pragma once
 #include "Module.hpp"
 #include "Vulkan/Renderer.hpp"
@@ -25,13 +26,13 @@ namespace Cobalt
 		virtual void OnMouseMove(float x, float y) override;
 
 	private:
-		void RenderPointLight(const char* name, PointLightData& pointLight);
+		void RenderPointLight(const char* name, GPUPointLight& pointLight);
 		void RenderUITransform(const char* name, Transform& transform);
 		void RenderUIMaterial(const char* name, MaterialHandle material);
 
 	private:
 		CameraController mCameraController;
-		SceneData mScene;
+		GPUScene mScene;
 
 		std::unique_ptr<Model> mSponzaModel;
 
@@ -42,3 +43,4 @@ namespace Cobalt
 	};
 
 }
+#endif

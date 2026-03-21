@@ -23,19 +23,20 @@ namespace Cobalt
 
 	public:
 		const std::vector<AssetHandle>& GetTextureAssetHandles()  const { return mTextureAssetHandles;  }
-		const std::vector<AssetHandle>& GetMaterialAssetHandles() const { return mMaterialAssetHandles; }
 		const std::vector<AssetHandle>& GetMeshAssetHandles()     const { return mMeshAssetHandles;     }
+		const std::vector<Material*>& GetMaterials() const { return mMaterials; }
 
 		AssetHandle GetTextureAssetHandle(uint32_t index = 0)  const { return mTextureAssetHandles[index];  }
-		AssetHandle GetMaterialAssetHandle(uint32_t index = 0) const { return mMaterialAssetHandles[index]; }
 		AssetHandle GetMeshAssetHandle(uint32_t index = 0)     const { return mMeshAssetHandles[index];     }
+		Material* GetMaterial(uint32_t index = 0) const { return mMaterials[index]; }
 
 	private:
 		std::filesystem::path mFilePath;
+		std::string mName;
 
 		std::vector<AssetHandle> mTextureAssetHandles;
-		std::vector<AssetHandle> mMaterialAssetHandles;
 		std::vector<AssetHandle> mMeshAssetHandles;
+		std::vector<Material*> mMaterials;
 	};
 
 }

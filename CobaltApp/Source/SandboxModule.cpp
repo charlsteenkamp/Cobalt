@@ -2,6 +2,7 @@
 #include "SandboxModule.hpp"
 #include "Application.hpp"
 #include "AssetManager.hpp"
+#include "Vulkan/MaterialSystem.hpp"
 
 #include <imgui.h>
 
@@ -43,20 +44,22 @@ namespace Cobalt
 		mCubeMesh = AssetManager::GetMesh(cubeModel.GetMeshAssetHandle());
 		mSphereMesh = AssetManager::GetMesh(sphereModel.GetMeshAssetHandle());
 
+		auto& materialSystem = Renderer::GetMaterialSystem();
+
 		for (uint32_t y = 0; y < sSphereGridSize; y++)
 		{
-			MaterialData sphereMaterialData;
-			sphereMaterialData.BaseColorFactor = { 1.0f, 0.0f, 0.0f, 1.0f };
-			sphereMaterialData.MetallicFactor = float(y) / (sSphereGridSize - 1);
+			MaterialInfo sphereMaterialInfo;
+			sphereMaterialInfo.ShaderEffectName = "Opaque";
+			sphereMaterialInfo.PackedMaterial.BaseColorFactor = { 1.0f, 0.0f, 0.0f, 1.0f };
+			sphereMaterialInfo.PackedMaterial.MetallicFactor = float(y) / (sSphereGridSize - 1);
 
 			for (uint32_t x = 0; x < sSphereGridSize; x++)
 			{
-				sphereMaterialData.RoughnessFactor = float(x) / (sSphereGridSize - 1);
+				sphereMaterialInfo.PackedMaterial.RoughnessFactor = float(x) / (sSphereGridSize - 1);
 
-				MaterialInfo sphereMaterialInfo = { sphereMaterialData/*, Renderer::GetPBRPipeline()*/};
+				std::string materialName = std::format("Sphere material {}:{}", x, y);
 
-				AssetHandle pbrMaterialAssetHandle = AssetManager::RegisterMaterial(sphereMaterialInfo);
-				mSphereMaterials[y][x] = AssetManager::GetMaterial(pbrMaterialAssetHandle);
+				mSphereMaterials[y][x] = materialSystem.BuildMaterial(materialName, sphereMaterialInfo);
 			}
 		}
 	}
@@ -103,18 +106,6 @@ namespace Cobalt
 		}
 
 		mCameraController.OnUpdate(deltaTime);
-
-		/*if (mSphereMaterialChanged)
-		{
-			MaterialData& materialData   = mPBRMaterial->GetMaterialData();
-			materialData.BaseColorFactor = mSphereBaseColor;
-			materialData.RoughnessFactor = mSphereRoughnessFactor;
-			materialData.MetallicFactor  = mSphereMetallicFactor;
-
-			Renderer::UploadMaterial(*mPBRMaterial);
-
-			mSphereMaterialChanged = false;
-		}*/
 	}
 
 	void SandboxModule::OnRender()

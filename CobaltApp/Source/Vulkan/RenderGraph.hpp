@@ -2,7 +2,7 @@
 #include "VulkanUtils.hpp"
 #include "Texture.hpp"
 #include "RenderGraphBuilder.hpp"
-#include "RenderPass.hpp"
+#include "Renderer.hpp"
 
 #include <string>
 #include <vector>
@@ -11,6 +11,8 @@
 
 namespace Cobalt
 {
+
+	class RenderPass;
 
 	struct RGCompiledPass
 	{
@@ -57,7 +59,7 @@ namespace Cobalt
 
 	public:
 		void Compile();
-		void Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderFrameContext);
+		void Execute(VkCommandBuffer commandBuffer, const RenderContext& renderContext);
 
 	private:
 		void SetupPassesAndRecordDependencies(RGResourceTouchList& resourceTouchList, RGPassTouchList& passTouchList);

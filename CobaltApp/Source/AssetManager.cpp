@@ -27,9 +27,6 @@ namespace Cobalt
 			return;
 
 		sData = new AssetManagerData();
-
-		RegisterDefaultTexture();
-		RegisterDefaultMaterial();
 	}
 
 	void AssetManager::Shutdown()
@@ -61,17 +58,6 @@ namespace Cobalt
 		return sData->Meshes[index].get();
 	}
 
-	Material* AssetManager::GetMaterial(AssetHandle materialHandle)
-	{
-		CO_PROFILE_FN();
-
-		if (!sData->AssetHandleIdMap.contains(materialHandle))
-			return nullptr;
-
-		size_t index = sData->AssetHandleIdMap.at(materialHandle).Index;
-		return sData->Materials[index].get();
-	}
-
 	AssetHandle AssetManager::RegisterTexture(const TextureInfo& textureInfo)
 	{
 		CO_PROFILE_FN();
@@ -80,8 +66,6 @@ namespace Cobalt
 
 		sData->Textures.push_back(std::make_unique<Texture>(textureInfo));
 		sData->AssetHandleIdMap[assetHandle] = { EAssetType::Texture, sData->Textures.size() - 1 };
-
-		Renderer::UploadTexture(*sData->Textures.back());
 
 		return assetHandle;
 	}
@@ -97,45 +81,5 @@ namespace Cobalt
 
 		return assetHandle;
 	}
-
-	AssetHandle AssetManager::RegisterMaterial(const MaterialInfo& materialInfo)
-	{
-		CO_PROFILE_FN();
-
-		AssetHandle assetHandle = GenerateAssetHandle();
-	
-		sData->Materials.push_back(std::make_unique<Material>(materialInfo));
-		sData->AssetHandleIdMap[assetHandle] = { EAssetType::Material, sData->Materials.size() - 1};
-
-		//Renderer::UploadMaterial(assetHandle, *sData->Materials.back());
-		Renderer::UploadMaterial(*sData->Materials.back());
-
-		return assetHandle;
-	}
-
-	void AssetManager::RegisterDefaultTexture()
-	{
-		CO_PROFILE_FN();
-
-		uint32_t textureData = 0xFFFFFFFF;
-
-		sData->Textures.push_back(std::make_unique<Texture>(TextureInfo(1, 1, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)));
-		sData->Textures.back()->CopyData(&textureData);
-		sData->AssetHandleIdMap[CO_DEFAULT_TEXTURE_ASSET] = { EAssetType::Texture, 0 };
-
-		Renderer::UploadTexture(*sData->Textures.back());
-	}
-
-	void AssetManager::RegisterDefaultMaterial()
-	{
-		CO_PROFILE_FN();
-
-		sData->Materials.push_back(std::make_unique<Material>(MaterialInfo(MaterialData()/*, Renderer::GetPBRPipeline()*/)));
-		sData->AssetHandleIdMap[CO_DEFAULT_MATERIAL_ASSET] = { EAssetType::Material, 0 };
-
-		//Renderer::UploadMaterial(CO_DEFAULT_MATERIAL_ASSET, *sData->Materials.back());
-		Renderer::UploadMaterial(*sData->Materials.back());
-	}
-
 
 }

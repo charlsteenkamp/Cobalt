@@ -15,12 +15,11 @@ namespace Cobalt
 
 	public:
 		void Setup(RenderGraphBuilder& builder) override;
-		void Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderContext) override;
+		void Execute(VkCommandBuffer commandBuffer, const RenderContext& renderContext) override;
 
 	private:
 		Shader* mShader = nullptr;
-
-		std::unique_ptr<Pipeline> mPipeline;
+		Pipeline* mPipeline = nullptr;
 
 		std::vector<DescriptorHandle> mDescriptorHandles;
 

@@ -34,6 +34,32 @@ namespace Cobalt
 
 		glm::vec3 EmissiveFactor = glm::vec3(0.0f);
 		float __padding1;
+
+		size_t Hash() const
+		{
+			size_t h = 0;
+
+			HashCombine(h, std::hash<TextureHandle>{}(BaseColorMapHandle));
+			HashCombine(h, std::hash<TextureHandle>{}(NormalMapHandle));
+			HashCombine(h, std::hash<TextureHandle>{}(OcclusionRoughnessMetallicMapHandle));
+			HashCombine(h, std::hash<TextureHandle>{}(EmissiveMapHandle));
+
+			HashCombine(h, std::hash<float>{}(BaseColorFactor.x));
+			HashCombine(h, std::hash<float>{}(BaseColorFactor.y));
+			HashCombine(h, std::hash<float>{}(BaseColorFactor.z));
+			HashCombine(h, std::hash<float>{}(BaseColorFactor.w));
+
+			HashCombine(h, std::hash<float>{}(NormalScale));
+			HashCombine(h, std::hash<float>{}(OcclusionStrength));
+			HashCombine(h, std::hash<float>{}(RoughnessFactor));
+			HashCombine(h, std::hash<float>{}(MetallicFactor));
+
+			HashCombine(h, std::hash<float>{}(EmissiveFactor.x));
+			HashCombine(h, std::hash<float>{}(EmissiveFactor.y));
+			HashCombine(h, std::hash<float>{}(EmissiveFactor.z));
+
+			return h;
+		}
 	};
 
 	struct SampledTexture
@@ -50,10 +76,14 @@ namespace Cobalt
 
 	using MaterialHash = uint64_t;
 
+	// Indexed by mesh pass -> per-frame descriptor handles
+	using PassDescriptorHandles = std::unordered_map<std::string, std::vector<DescriptorHandle>>;
+
 	struct ShaderEffect
 	{
 		std::unordered_map<std::string, Pipeline*> PassPipelines;
 		TransparencyMode Transparency;
+		PassDescriptorHandles PassDescriptors;
 	};
 
 	struct MaterialInfo
@@ -68,68 +98,40 @@ namespace Cobalt
 
 			// SampledTextures aren't hashed
 
-			HashCombine(h, std::hash<TextureHandle>{}(PackedMaterial.BaseColorMapHandle));
-			HashCombine(h, std::hash<TextureHandle>{}(PackedMaterial.NormalMapHandle));
-			HashCombine(h, std::hash<TextureHandle>{}(PackedMaterial.OcclusionRoughnessMetallicMapHandle));
-			HashCombine(h, std::hash<TextureHandle>{}(PackedMaterial.EmissiveMapHandle));
-
-			HashCombine(h, std::hash<float>{}(PackedMaterial.BaseColorFactor.x));
-			HashCombine(h, std::hash<float>{}(PackedMaterial.BaseColorFactor.y));
-			HashCombine(h, std::hash<float>{}(PackedMaterial.BaseColorFactor.z));
-			HashCombine(h, std::hash<float>{}(PackedMaterial.BaseColorFactor.w));
-
-			HashCombine(h, std::hash<float>{}(PackedMaterial.NormalScale));
-			HashCombine(h, std::hash<float>{}(PackedMaterial.OcclusionStrength));
-			HashCombine(h, std::hash<float>{}(PackedMaterial.RoughnessFactor));
-			HashCombine(h, std::hash<float>{}(PackedMaterial.MetallicFactor));
-
-			HashCombine(h, std::hash<float>{}(PackedMaterial.EmissiveFactor.x));
-			HashCombine(h, std::hash<float>{}(PackedMaterial.EmissiveFactor.y));
-			HashCombine(h, std::hash<float>{}(PackedMaterial.EmissiveFactor.z));
-
+			HashCombine(h, std::hash<size_t>{}(PackedMaterial.Hash()));
 			HashCombine(h, std::hash<std::string>{}(ShaderEffectName));
 
 			return h;
 		}
-	};
 
-	// Indexed by mesh pass -> per-frame descriptor handles
-	using PassDescriptorHandles = std::unordered_map<std::string, std::vector<DescriptorHandle>>;
+		bool operator==(const MaterialInfo& other) const
+		{
+			return Hash() == other.Hash();
+		}
+	};
 
 	class Material
 	{
 	public:
-		Material(const MaterialInfo& materialInfo, const ShaderEffect& shaderEffect, const PassDescriptorHandles& passDescriptorHandles)
-			: mMaterialInfo(materialInfo), mShaderEffect(shaderEffect), mPassDescriptorHandles(passDescriptorHandles)
+		Material() = default;
+		Material(const MaterialInfo& materialInfo, const ShaderEffect* shaderEffect, MaterialHandle materialHandle)
+			: mMaterialInfo(materialInfo), mShaderEffect(shaderEffect), mMaterialHandle(materialHandle)
 		{
 		}
 
 		~Material() = default;
 
 	public:
-		      MaterialInfo& GetMaterialInfo()       { return mMaterialInfo; }
 		const MaterialInfo& GetMaterialInfo() const { return mMaterialInfo; }
+		const ShaderEffect* GetShaderEffect() const { return mShaderEffect; }
 
-		const ShaderEffect& GetShaderEffect() const { return mShaderEffect; }
-
-		DescriptorHandle GetDescriptorHandle(const std::string& passName, uint32_t frameIndex) const
-		{
-			if (!mPassDescriptorHandles.contains(passName))
-				return -1;
-
-			const auto& descriptorHandles = mPassDescriptorHandles.at(passName);
-
-			if (frameIndex >= descriptorHandles.size())
-				return -1;
-
-			return descriptorHandles[frameIndex];
-		}
+		MaterialHandle GetMaterialHandle() const { return mMaterialHandle; }
 
 	private:
-		MaterialInfo mMaterialInfo;
-		const ShaderEffect& mShaderEffect;
+		const MaterialInfo& mMaterialInfo;
+		const ShaderEffect* mShaderEffect = nullptr;
 
-		PassDescriptorHandles mPassDescriptorHandles;
+		MaterialHandle mMaterialHandle = -1;
 	};
 
 }

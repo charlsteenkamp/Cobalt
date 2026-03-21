@@ -24,7 +24,7 @@ namespace Cobalt
 		const std::vector<MeshVertex>& Vertices;
 		const std::vector<uint32_t>&   Indices;
 
-		Material* MaterialRef; // non-owning pointer
+		Material* MaterialRef;
 	};
 
 	class Mesh
@@ -41,7 +41,6 @@ namespace Cobalt
 		const std::vector<uint32_t>&   GetIndices()   const { return mIndices;  }
 
 		Material* GetMaterial() const { return mMaterialRef; }
-		//const std::vector<MeshSurface>& GetSurfaces() const { return mSurfaces; }
 
 		VulkanBuffer* GetVertexBuffer() const { return mVertexBuffer.get(); }
 		VulkanBuffer* GetIndexBuffer()  const { return mIndexBuffer.get();  }
@@ -51,7 +50,6 @@ namespace Cobalt
 	private:
 		std::vector<MeshVertex> mVertices;
 		std::vector<uint32_t> mIndices;
-		//std::vector<MeshSurface> mSurfaces;
 		Material* mMaterialRef;
 
 		std::unique_ptr<VulkanBuffer> mVertexBuffer;

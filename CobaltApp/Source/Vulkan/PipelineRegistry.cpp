@@ -23,6 +23,8 @@ namespace Cobalt
 
 		mPipelines.push_back(std::make_unique<Pipeline>(pipelineInfo));
 		mPassNamePipelineMap[passName] = mPipelines.back().get();
+
+		return mPipelines.back().get();
 	}
 
 	Pipeline* PipelineRegistry::GetPipeline(const std::string& passName) const

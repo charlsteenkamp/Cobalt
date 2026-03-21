@@ -29,7 +29,12 @@ namespace Cobalt
 			pipelineInfo.ColorAttachments.reserve(outputAttachments.size());
 
 			for (Texture* outputAttachment : outputAttachments)
-				pipelineInfo.ColorAttachments.push_back({ false, outputAttachment->GetFormat() });
+			{
+				if (outputAttachment->GetImageAspectFlags() & VK_IMAGE_ASPECT_DEPTH_BIT)
+					pipelineInfo.DepthAttachmentFormat = outputAttachment->GetFormat();
+				else
+					pipelineInfo.ColorAttachments.push_back({ false, outputAttachment->GetFormat() });
+			}
 
 			mPipelineRegistry.BuildPipeline(pass->GetName(), pipelineInfo);
 		}
@@ -64,12 +69,25 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		mShaderEffects[shaderEffectName] = ShaderEffect{
-			.Transparency = transparency
-		};
+		auto& shaderEffect = mShaderEffects[shaderEffectName];
+		shaderEffect.Transparency = transparency;
+
+		// Allocate descriptors
+
+		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
 
 		for (const std::string& passName : mMeshPassNames)
-			mShaderEffects[shaderEffectName].PassPipelines[passName] = mPipelineRegistry.GetPipeline(passName);
+		{
+			auto& pipeline = shaderEffect.PassPipelines[passName];
+			auto& descriptors = shaderEffect.PassDescriptors[passName];
+
+			pipeline = mPipelineRegistry.GetPipeline(passName);
+
+			VkDescriptorSetLayout descriptorSetLayout = pipeline->GetInfo().Shader.GetDescriptorSetLayouts()[0];
+
+			for (uint32_t i = 0; i < GraphicsContext::Get().GetFrameCount(); i++)
+				descriptors.push_back(descriptorBufferManager.AllocateDescriptor(descriptorSetLayout, true, true));
+		}
 
 		return &mShaderEffects[shaderEffectName];
 	}
@@ -81,6 +99,7 @@ namespace Cobalt
 		auto it = mMaterialInfoMaterialMap.find(materialInfo);
 
 		if (it != mMaterialInfoMaterialMap.end())
+		if (true)
 		{
 			Material* material = (*it).second;
 			mNameMaterialMap[materialName] = material;
@@ -90,24 +109,10 @@ namespace Cobalt
 		if (!mShaderEffects.contains(materialInfo.ShaderEffectName))
 			return nullptr;
 
-		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
-		const ShaderEffect& shaderEffect = mShaderEffects.at(materialInfo.ShaderEffectName);
+		const ShaderEffect* shaderEffect = &mShaderEffects.at(materialInfo.ShaderEffectName);
 
-		// Allocate descriptor handles for each pass
-
-		PassDescriptorHandles passDescriptorHandles;
-
-		for (const auto& [passName, pipelinePtr] : shaderEffect.PassPipelines)
-		{
-			passDescriptorHandles[passName] = {};
-
-			VkDescriptorSetLayout descriptorSetLayout = pipelinePtr->GetInfo().Shader.GetDescriptorSetLayouts()[0];
-
-			for (uint32_t i = 0; i < GraphicsContext::Get().GetFrameCount(); i++)
-				passDescriptorHandles[passName].push_back(descriptorBufferManager.AllocateDescriptor(descriptorSetLayout, true, true));
-		}
-
-		mMaterials.emplace_back(materialInfo, shaderEffect, passDescriptorHandles);
+		mMaterials.emplace_back(materialInfo, shaderEffect, mMaterials.size());
+		mMaterialInfoMaterialMap[materialInfo] = &mMaterials.back();
 		mNameMaterialMap[materialName] = &mMaterials.back();
 		mNameMaterialHandleMap[materialName] = mMaterials.size() - 1;
 
@@ -123,7 +128,17 @@ namespace Cobalt
 		if (!mNameMaterialMap.contains(materialName))
 			return nullptr;
 
-		return mNameMaterialMap.at(name);
+		return mNameMaterialMap.at(materialName);
+	}
+
+	Material* MaterialSystem::GetMaterial(const MaterialInfo& materialInfo) const
+	{
+		CO_PROFILE_FN();
+
+		if (!mMaterialInfoMaterialMap.contains(materialInfo))
+			return nullptr;
+
+		return mMaterialInfoMaterialMap.at(materialInfo);
 	}
 
 }

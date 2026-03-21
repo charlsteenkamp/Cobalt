@@ -52,8 +52,7 @@ namespace Cobalt
 
 		GraphicsContext::Get().GetPipelineRegistry().BuildPipeline(mName, lightingPassPipelineInfo);
 
-#if 0
-		mPipeline = std::make_unique<Pipeline>(lightingPassPipelineInfo);
+		//mPipeline = std::make_unique<Pipeline>(lightingPassPipelineInfo);
 
 		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
 
@@ -64,10 +63,9 @@ namespace Cobalt
 		{
 			mDescriptorHandles[i] = descriptorBufferManager.AllocateDescriptor(mShader->GetDescriptorSetLayouts()[0], true, true);
 		}
-#endif
 	}
 
-	void LightingPass::Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderContext)
+	void LightingPass::Execute(VkCommandBuffer commandBuffer, const RenderContext& renderContext)
 	{
 		CO_PROFILE_FN();
 
@@ -94,7 +92,7 @@ namespace Cobalt
 		auto& renderGraph = Renderer::GetRenderGraph();
 
 		ShaderCursor lightingPassShaderCursor(mShader->GetRootShaderParameter(), mDescriptorHandles[frameIndex]);
-		lightingPassShaderCursor.Field("scene").Write(renderContext.SceneBuffer);
+		lightingPassShaderCursor.Field("scene").Write(*renderContext.SceneBuffer);
 		lightingPassShaderCursor.Field("gBuffers")
 			.WriteField("SamplerPosition", renderGraph.GetResource(mPositionAttachment))
 			.WriteField("SamplerBaseColor", renderGraph.GetResource(mBaseColorAttachment))

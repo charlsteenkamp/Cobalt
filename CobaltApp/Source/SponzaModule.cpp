@@ -1,4 +1,5 @@
 #include "copch.hpp"
+#if 0
 #include "SponzaModule.hpp"
 #include "Application.hpp"
 #include <imgui.h>
@@ -190,3 +191,4 @@ namespace Cobalt
 	}
 
 }
+#endif

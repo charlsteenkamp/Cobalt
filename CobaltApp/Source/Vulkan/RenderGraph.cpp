@@ -565,7 +565,7 @@ namespace Cobalt
 		mPassInDegree = passInDegree;
 	}
 
-	void RenderGraph::Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderFrameContext)
+	void RenderGraph::Execute(VkCommandBuffer commandBuffer, const RenderContext& renderContext)
 	{
 		CO_PROFILE_FN();
 
@@ -605,7 +605,7 @@ namespace Cobalt
 			};
 
 			m_vkCmdBeginRenderingKHR(commandBuffer, &renderingInfo);
-			compiledPass.Pass->Execute(commandBuffer, renderFrameContext);
+			compiledPass.Pass->Execute(commandBuffer, renderContext);
 			m_vkCmdEndRenderingKHR(commandBuffer);
 		}
 	}

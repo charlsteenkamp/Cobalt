@@ -44,32 +44,35 @@ namespace Cobalt
 		{
 		}
 
-		VulkanBuffer* IndexBuffer = nullptr;
+		const VulkanBuffer* IndexBuffer = nullptr;
 		uint32_t FirstIndex = 0;
 		uint32_t IndexCount = 0;
-		Material* Material = nullptr;
+		const Material* Material = nullptr;
 	};
 
 	struct DrawBatch
 	{
-		VulkanBuffer* IndexBuffer = nullptr;
+		const VulkanBuffer* IndexBuffer = nullptr;
 		uint32_t FirstIndex = 0;
 		uint32_t IndexCount = 0;
-		Material* Material = nullptr;
+		const ShaderEffect* Effect = nullptr;
 		uint32_t FirstInstance = 0;
 		uint32_t InstanceCount = 0;
 	};
 
-	struct RenderFrameContext
+	struct RenderContext
 	{
-		VulkanBuffer& SceneBuffer;
-		VulkanBuffer& ObjectBuffer;
-		VulkanBuffer& MaterialBuffer;
+		VulkanBuffer* SceneBuffer;
+		VulkanBuffer* ObjectBuffer;
+		VulkanBuffer* PackedMaterialBuffer;
 
-		std::vector<Image>& BindlessImages;
+		GPUScene ActiveScene;
+		std::vector<GPUObject> GPUObjects;
+		std::vector<DrawCall> DrawCalls;
 	};
 
 	class RenderGraph;
+	class MaterialSystem;
 
 	class Renderer
 	{
@@ -80,81 +83,40 @@ namespace Cobalt
 		static void OnResize();
 
 	public:
-		static ShaderLibrary& GetShaderLibrary() { return *sData->Shaders; }
-		static RenderGraph& GetRenderGraph() { return *sData->RenderGraph; }
+		static ShaderLibrary& GetShaderLibrary() { return *sData->mShaderLibrary; }
+		static MaterialSystem& GetMaterialSystem() { return *sData->mMaterialSystem; }
+		static RenderGraph& GetRenderGraph() { return *sData->mRenderGraph; }
 
-		static RenderFrameContext GetRenderFrameContext();
-
-	public:
-		// Called by Assetmanager
-		static void UploadTexture(const Texture& texture);
-
-		// Called by AssetManager whenever a new material is registered, or somewhere else when an existing material's data changes
-		static void UploadMaterial(Material& material);
+		static const RenderContext& GetRenderContext() { return sData->mRenderContext; }
 
 	public:
-		static void BeginScene(const SceneData& scene);
+		static void BeginScene(const GPUScene& scene);
 		static void EndScene();
 
 		static void DrawMesh(const Transform& transform, const Mesh* mesh);
 
 	public:
-		static void DrawObjects(VkCommandBuffer commandBuffer, DescriptorHandle descriptorHandle, const Pipeline& pipeline);
+		static void DrawObjects(VkCommandBuffer commandBuffer, const std::string& passName, const RenderContext& renderContext);
 
 	private:
-		static void CreateOrRecreateAttachments();
-		static void CreateOrRecreateFramebuffers();
-
-		static std::vector<DrawBatch> BatchDrawCalls();
+		static std::vector<DrawBatch> BatchDrawCalls(const std::string& passName, const RenderContext& renderContext);
 
 	private:
 		struct RendererData
 		{
-			//VkRenderPass MainRenderPass;
-			VkRenderPass GeometryRenderPass, LightingRenderPass;
-
-			std::unique_ptr<Texture> PositionTexture, BaseColorTexture, NormalTexture, OcclusionRoughnessMetallicTexture, EmissiveTexture;
-			std::unique_ptr<Texture> DepthTexture;
-
-			std::vector<VkFramebuffer> GeometryPassFramebuffers, LightingPassFramebuffers; // by backbuffer index
-
-			SceneData ActiveScene;
-
-			std::unique_ptr<ShaderLibrary> Shaders;
-			//ShaderHandle PBRShaderHandle;
-			//ShaderHandle GeometryPassShaderHandle;
-			///ShaderHandle LightingPassShaderHandle;
-
-			//std::vector<std::unique_ptr<Pipeline>> Pipelines;
-			//Pipeline* PBRPipeline = nullptr;
-			//std::unique_ptr<Pipeline> GeometryPassPipeline;
-			//std::unique_ptr<Pipeline> LightingPassPipeline;
-
 			// per frame-in-flight
-			std::vector<std::unique_ptr<VulkanBuffer>> SceneDataUniformBuffers;
-			std::vector<std::unique_ptr<VulkanBuffer>> ObjectStorageBuffers;
-			std::vector<std::unique_ptr<VulkanBuffer>> MaterialDataStorageBuffers;
-
-			std::vector<ObjectData>   Objects;
-			std::vector<MaterialData> Materials;
-
-			//std::vector<DescriptorHandle> GeometryPassDescriptorHandles;
-			//std::vector<DescriptorHandle> LightingPassDescriptorHandles;
-
-			std::vector<Image> BindlessImages;
-
-			static constexpr uint32_t sDescriptorSetGlobalBinding   = 0;
-			static constexpr uint32_t sDescriptorSetObjectBinding   = 1;
-			static constexpr uint32_t sDescriptorSetMaterialBinding = 2;
-			static constexpr uint32_t sDescriptorSetTextureBinding  = 3;
+			std::vector<std::unique_ptr<VulkanBuffer>> SceneBuffers;
+			std::vector<std::unique_ptr<VulkanBuffer>> ObjectBuffers;
+			std::vector<std::unique_ptr<VulkanBuffer>> PackedMaterialBuffers;
 
 			static constexpr uint32_t sMaxMaterialCount = 100;
 			static constexpr uint32_t sMaxObjectCount   = 10000;
 			
-			//std::unordered_map<AssetHandle, MaterialHandle> AssetMaterialHandleMap;
-			std::unique_ptr<RenderGraph> RenderGraph;
+			std::unique_ptr<ShaderLibrary> mShaderLibrary;
+			std::unique_ptr<RenderGraph> mRenderGraph;
+			std::unique_ptr<MaterialSystem> mMaterialSystem;
 
-			std::vector<DrawCall> DrawCalls;
+			RenderContext mRenderContext;
 		};
 
 		inline static RendererData* sData = nullptr;

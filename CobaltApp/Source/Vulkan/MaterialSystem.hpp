@@ -18,6 +18,7 @@ namespace Cobalt
 
 		Material* BuildMaterial(const std::string& materialName, const MaterialInfo& materialInfo);
 		Material* GetMaterial(const std::string& materialName) const;
+		Material* GetMaterial(const MaterialInfo& materialInfo) const;
 
 	public:
 		const std::vector<GPUPackedMaterial>& GetGPUPackedMaterials() const { return mGPUPackedMaterials; }

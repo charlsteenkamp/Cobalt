@@ -268,7 +268,7 @@ namespace Cobalt
 
 		mDescriptorBufferManager = std::make_unique<DescriptorBufferManager>();
 		mDescriptorCache = std::make_unique<DescriptorCache>(*mDescriptorBufferManager);
-		mPipelineRegistry = std::make_unique<PipelineRegistry>(*mPipelineRegistry);
+		mPipelineRegistry = std::make_unique<PipelineRegistry>();
 
 		// Initialize optick gpu profiling
 

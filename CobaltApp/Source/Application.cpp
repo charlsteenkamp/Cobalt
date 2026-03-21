@@ -44,8 +44,8 @@ namespace Cobalt
 		mGraphicsContext->Init();
 
 		ShaderCompiler::Init();
-		Renderer::Init();
 		AssetManager::Init();
+		Renderer::Init();
 
 		if (mInfo.EnableImGui)
 			ImGuiBackend::Init();

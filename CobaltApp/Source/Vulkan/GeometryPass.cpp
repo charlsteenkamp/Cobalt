@@ -6,7 +6,7 @@ namespace Cobalt
 {
 
 	GeometryPass::GeometryPass()
-		: RenderPass("Geometry Pass", "Deferred/GeometryPass.slang", (RenderPassFlags)RenderPassFlagBits::MeshPass)
+		: RenderPass("Geometry Pass", "Deferred\\GeometryPass.slang", (RenderPassFlags)RenderPassFlagBits::MeshPass)
 	{
 		CO_PROFILE_FN();
 	}
@@ -73,7 +73,7 @@ namespace Cobalt
 #endif
 	}
 
-	void GeometryPass::Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderContext)
+	void GeometryPass::Execute(VkCommandBuffer commandBuffer, const RenderContext& renderContext)
 	{
 		CO_PROFILE_FN();
 
@@ -98,13 +98,13 @@ namespace Cobalt
 		uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
 
 		ShaderCursor shaderCursor(mShader->GetRootShaderParameter(), mDescriptorHandles[frameIndex]);
-		shaderCursor.Field("scene").Write(renderContext.SceneBuffer);
-		shaderCursor.Field("objects").Write(renderContext.ObjectBuffer);
-		shaderCursor.Field("materials").Write(renderContext.MaterialBuffer);
-		shaderCursor.Field("textures").Write(renderContext.BindlessImages);
+		shaderCursor.Field("scene").Write(*renderContext.SceneBuffer);
+		shaderCursor.Field("objects").Write(*renderContext.ObjectBuffer);
+		shaderCursor.Field("materials").Write(*renderContext.PackedMaterialBuffer);
+		//shaderCursor.Field("textures").Write(renderContext.BindlessImages);
 		shaderCursor.Finalize();
 
-		Renderer::DrawObjects(commandBuffer, mDescriptorHandles[frameIndex], *mPipeline);
+		Renderer::DrawObjects(commandBuffer, mName, renderContext);
 	}
 
 }

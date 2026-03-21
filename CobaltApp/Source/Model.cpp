@@ -1,6 +1,7 @@
 #include "copch.hpp"
 #include "Model.hpp"
 #include "Vulkan/Renderer.hpp"
+#include "Vulkan/MaterialSystem.hpp"
 #include "AssetManager.hpp"
 
 #include <fastgltf/core.hpp>
@@ -32,6 +33,8 @@ namespace Cobalt
 		: mFilePath(filePath)
 	{
 		CO_PROFILE_FN();
+
+		mName = mFilePath.filename().string();
 
 		Load();
 	}
@@ -89,22 +92,20 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		mMaterialAssetHandles.resize(gltf.materials.size());
-
 		for (uint32_t i = 0; i < gltf.materials.size(); i++)
 		{
 			const fastgltf::Material& material = gltf.materials[i];
-			MaterialData materialData;
+			MaterialInfo materialInfo;
 
 			// Base color factor & texture
 
-			materialData.BaseColorFactor = FastGLTFVec4ToGLMVec4(material.pbrData.baseColorFactor);
+			materialInfo.PackedMaterial.BaseColorFactor = FastGLTFVec4ToGLMVec4(material.pbrData.baseColorFactor);
 
 			if (material.pbrData.baseColorTexture.has_value())
 			{
 				const fastgltf::TextureInfo& texture = material.pbrData.baseColorTexture.value();
 
-				materialData.BaseColorMapHandle = mTextureAssetHandles[texture.textureIndex];
+				materialInfo.PackedMaterial.BaseColorMapHandle = mTextureAssetHandles[texture.textureIndex];
 			}
 
 			// Normal scale & texture
@@ -113,8 +114,8 @@ namespace Cobalt
 			{
 				const fastgltf::NormalTextureInfo& normalTexture = material.normalTexture.value();
 
-				materialData.NormalScale     = normalTexture.scale;
-				materialData.NormalMapHandle = mTextureAssetHandles[normalTexture.textureIndex];
+				materialInfo.PackedMaterial.NormalScale = normalTexture.scale;
+				materialInfo.PackedMaterial.NormalMapHandle = mTextureAssetHandles[normalTexture.textureIndex];
 			}
 
 			// Occlusion, Roughness & Metallic
@@ -125,11 +126,11 @@ namespace Cobalt
 			{
 				const fastgltf::OcclusionTextureInfo& texture = material.occlusionTexture.value();
 
-				materialData.OcclusionStrength = texture.strength;
+				materialInfo.PackedMaterial.OcclusionStrength = texture.strength;
 			}
 
-			materialData.RoughnessFactor = material.pbrData.roughnessFactor;
-			materialData.MetallicFactor = material.pbrData.metallicFactor;
+			materialInfo.PackedMaterial.RoughnessFactor = material.pbrData.roughnessFactor;
+			materialInfo.PackedMaterial.MetallicFactor = material.pbrData.metallicFactor;
 
 			// Check if a packed occlusion roughness metallic texture exists and use that,
 
@@ -139,7 +140,7 @@ namespace Cobalt
 				{
 					const fastgltf::TextureInfo& texture = material.packedOcclusionRoughnessMetallicTextures->occlusionRoughnessMetallicTexture.value();
 
-					materialData.OcclusionRoughnessMetallicMapHandle = mTextureAssetHandles[texture.textureIndex];
+					materialInfo.PackedMaterial.OcclusionRoughnessMetallicMapHandle = mTextureAssetHandles[texture.textureIndex];
 				}
 			}
 
@@ -148,26 +149,27 @@ namespace Cobalt
 			else if (material.pbrData.metallicRoughnessTexture.has_value())
 			{
 				const fastgltf::TextureInfo& texture = material.pbrData.metallicRoughnessTexture.value();
-				materialData.OcclusionRoughnessMetallicMapHandle = mTextureAssetHandles[texture.textureIndex];
+				materialInfo.PackedMaterial.OcclusionRoughnessMetallicMapHandle = mTextureAssetHandles[texture.textureIndex];
 			}
 
 			// Emmissive factor & texture
 
-			materialData.EmissiveFactor = FastGLTFVec3ToGLMVec3(material.emissiveFactor);
+			materialInfo.PackedMaterial.EmissiveFactor = FastGLTFVec3ToGLMVec3(material.emissiveFactor);
 
 			if (material.emissiveTexture.has_value())
 			{
 				const fastgltf::TextureInfo& texture = material.emissiveTexture.value();
-				materialData.EmissiveMapHandle = mTextureAssetHandles[texture.textureIndex];
+				materialInfo.PackedMaterial.EmissiveMapHandle = mTextureAssetHandles[texture.textureIndex];
 			}
 
-			MaterialInfo materialInfo = {
-				.MaterialData = materialData,
-				/*.Pipeline = Renderer::GetPBRPipeline()*/
-			};
+			auto& materialSystem = Renderer::GetMaterialSystem();
 
-			AssetHandle materialAssetHandle = AssetManager::RegisterMaterial(materialInfo);
-			mMaterialAssetHandles[i] = materialAssetHandle;
+			if (!materialSystem.GetMaterial(materialInfo))
+			{
+				std::string materialName = std::format("{}{}", mName, mMaterials.size());
+
+				mMaterials.push_back(materialSystem.BuildMaterial(materialName, materialInfo));
+			}
 		}
 	}
 
@@ -190,10 +192,7 @@ namespace Cobalt
 			vertices.clear();
 			indices.clear();
 
-			//std::vector<MeshSurface> surfaces;
-			//surfaces.reserve(mesh.primitives.size());
-
-			AssetHandle materialAssetHandle = CO_DEFAULT_MATERIAL_ASSET;
+			Material* material = nullptr;
 
 			for (const fastgltf::Primitive& primitive : mesh.primitives)
 			{
@@ -203,7 +202,7 @@ namespace Cobalt
 				// Set surface material
 
 				if (primitive.materialIndex.has_value())
-					materialAssetHandle = mMaterialAssetHandles[primitive.materialIndex.value()];
+					material = mMaterials[primitive.materialIndex.value()];
 
 				// Load indices
 
@@ -246,7 +245,6 @@ namespace Cobalt
 
 				// Load tangents
 
-#if 1
 				if (auto tangents = primitive.findAttribute("TANGENT"); tangents != primitive.attributes.end())
 				{
 					fastgltf::iterateAccessorWithIndex<fastgltf::math::nvec4>(gltf, gltf.accessors[tangents->accessorIndex],
@@ -256,7 +254,6 @@ namespace Cobalt
 						}
 					);
 				}
-#endif
 
 				// Load UV coords
 
@@ -275,7 +272,7 @@ namespace Cobalt
 			MeshInfo meshInfo = {
 				.Vertices = vertices,
 				.Indices  = indices,
-				.MaterialRef = AssetManager::GetMaterial(materialAssetHandle)
+				.MaterialRef = material
 			};
 
 			AssetHandle meshAssetHandle = AssetManager::RegisterMesh(meshInfo);

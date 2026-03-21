@@ -20,7 +20,7 @@ namespace Cobalt
 	{
 	public:
 		RenderPass(const std::string& name, const std::filesystem::path& shaderPath, RenderPassFlags flags)
-			: mName(name), mFlags(flags)
+			: mName(name), mShaderPath(shaderPath), mFlags(flags)
 		{
 		}
 
@@ -28,7 +28,7 @@ namespace Cobalt
 
 	public:
 		virtual void Setup(RenderGraphBuilder& builder) = 0;
-		virtual void Execute(VkCommandBuffer commandBuffer, RenderFrameContext renderContext) = 0;
+		virtual void Execute(VkCommandBuffer commandBuffer, const RenderContext& renderContext) = 0;
 
 	public:
 		const std::string& GetName() const { return mName; }

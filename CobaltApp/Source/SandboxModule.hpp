@@ -24,7 +24,7 @@ namespace Cobalt
 
 	private:
 		CameraController mCameraController;
-		SceneData mScene;
+		GPUScene mScene;
 
 		Mesh* mCubeMesh = nullptr;
 		Mesh* mSphereMesh = nullptr;
