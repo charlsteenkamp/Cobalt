@@ -14,6 +14,9 @@ namespace Cobalt
 		~MaterialSystem();
 
 	public:
+		static constexpr int GetMaxMaterialCount() { return sMaxMaterialCount; }
+
+	public:
 		ShaderEffect* RegisterShaderEffect(const std::string& shaderEffectName, TransparencyMode transparency);
 
 		Material* BuildMaterial(const std::string& materialName, const MaterialInfo& materialInfo);
@@ -46,6 +49,8 @@ namespace Cobalt
 
 		std::vector<Material> mMaterials;
 		std::vector<GPUPackedMaterial> mGPUPackedMaterials;
+
+		static constexpr uint32_t sMaxMaterialCount = 512;
 	};
 
 }

@@ -58,6 +58,19 @@ namespace Cobalt
 		return sData->Meshes[index].get();
 	}
 
+	AssetHandle AssetManager::RegisterDefaultTexture(const TextureInfo& textureInfo)
+	{
+		CO_PROFILE_FN();
+
+		AssetHandle assetHandle = CO_DEFAULT_TEXTURE_HANDLE;
+
+		sData->Textures.push_back(std::make_unique<Texture>(textureInfo));
+		sData->AssetHandleIdMap[assetHandle] = { EAssetType::Texture, sData->Textures.size() - 1 };
+
+		return assetHandle;
+
+	}
+
 	AssetHandle AssetManager::RegisterTexture(const TextureInfo& textureInfo)
 	{
 		CO_PROFILE_FN();

@@ -109,8 +109,7 @@ namespace Cobalt
 			std::vector<std::unique_ptr<VulkanBuffer>> ObjectBuffers;
 			std::vector<std::unique_ptr<VulkanBuffer>> PackedMaterialBuffers;
 
-			static constexpr uint32_t sMaxMaterialCount = 100;
-			static constexpr uint32_t sMaxObjectCount   = 10000;
+			static constexpr uint32_t sMaxObjectCount = 10000;
 			
 			std::unique_ptr<ShaderLibrary> mShaderLibrary;
 			std::unique_ptr<RenderGraph> mRenderGraph;

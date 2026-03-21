@@ -29,7 +29,7 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		const std::vector<ShaderStage> shaderStages = mInfo.Shader.GetShaderStages();
+		const std::vector<ShaderStage> shaderStages = mInfo.Shader->GetShaderStages();
 
 		std::vector<VkShaderModule> shaderModuleHandles(shaderStages.size());
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfos(shaderStages.size());
@@ -186,7 +186,7 @@ namespace Cobalt
 			.pDynamicStates = dynamicStates
 		};
 
-		const auto& descriptorSetLayouts = mInfo.Shader.GetDescriptorSetLayouts();
+		const auto& descriptorSetLayouts = mInfo.Shader->GetDescriptorSetLayouts();
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,

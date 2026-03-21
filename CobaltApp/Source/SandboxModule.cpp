@@ -46,9 +46,16 @@ namespace Cobalt
 
 		auto& materialSystem = Renderer::GetMaterialSystem();
 
+		mCubeMesh->SetMaterial(materialSystem.GetMaterial("PBR"));
+
+		const Texture* defaultTexture = AssetManager::GetTexture(CO_DEFAULT_TEXTURE_HANDLE);
+		Image defaultTextureImage = { defaultTexture->GetSampler(), defaultTexture->GetImageView(), defaultTexture->GetImageLayout() };
+
 		for (uint32_t y = 0; y < sSphereGridSize; y++)
 		{
 			MaterialInfo sphereMaterialInfo;
+			sphereMaterialInfo.SampledTextures = { defaultTextureImage };
+
 			sphereMaterialInfo.ShaderEffectName = "Opaque";
 			sphereMaterialInfo.PackedMaterial.BaseColorFactor = { 1.0f, 0.0f, 0.0f, 1.0f };
 			sphereMaterialInfo.PackedMaterial.MetallicFactor = float(y) / (sSphereGridSize - 1);

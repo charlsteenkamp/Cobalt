@@ -12,6 +12,9 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
+		mMaterials.reserve(sMaxMaterialCount);
+		mGPUPackedMaterials.reserve(sMaxMaterialCount);
+
 		// Build pipelines from mesh passes
 
 		for (const auto& pass : mRenderGraph.GetPasses())
@@ -22,7 +25,7 @@ namespace Cobalt
 			mMeshPassNames.push_back(pass->GetName());
 
 			PipelineInfo pipelineInfo = {
-				.Shader = *mShaderLibrary.GetShader(pass->GetShaderPath().string()),
+				.Shader = (Shader*)mShaderLibrary.GetShader(pass->GetShaderPath().string()),
 			};
 
 			const std::vector<Texture*> outputAttachments = mRenderGraph.GetPassOutputAttachments(pass->GetName());
@@ -47,7 +50,7 @@ namespace Cobalt
 
 		uint32_t defaultTextureData = 0xFFFFFFFF;
 
-		AssetHandle defaultTextureAsset = AssetManager::RegisterTexture(TextureInfo(1, 1, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT));
+		AssetHandle defaultTextureAsset = AssetManager::RegisterDefaultTexture(TextureInfo(1, 1, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT));
 		Texture* defaultTexture = AssetManager::GetTexture(defaultTextureAsset);
 		defaultTexture->CopyData(&defaultTextureData);
 
@@ -55,7 +58,7 @@ namespace Cobalt
 
 		MaterialInfo materialInfo;
 		materialInfo.ShaderEffectName = "Opaque";
-		materialInfo.SampledTextures.push_back({ defaultTexture->GetImageView(), defaultTexture->GetSampler() });
+		materialInfo.SampledTextures.push_back({ defaultTexture->GetSampler(), defaultTexture->GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
 
 		BuildMaterial("PBR", materialInfo);
 	}
@@ -83,7 +86,7 @@ namespace Cobalt
 
 			pipeline = mPipelineRegistry.GetPipeline(passName);
 
-			VkDescriptorSetLayout descriptorSetLayout = pipeline->GetInfo().Shader.GetDescriptorSetLayouts()[0];
+			VkDescriptorSetLayout descriptorSetLayout = pipeline->GetInfo().Shader->GetDescriptorSetLayouts()[0];
 
 			for (uint32_t i = 0; i < GraphicsContext::Get().GetFrameCount(); i++)
 				descriptors.push_back(descriptorBufferManager.AllocateDescriptor(descriptorSetLayout, true, true));

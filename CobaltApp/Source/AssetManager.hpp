@@ -22,6 +22,7 @@ namespace Cobalt
 		static Mesh* GetMesh(AssetHandle meshHandle);
 
 	public:
+		static AssetHandle RegisterDefaultTexture(const TextureInfo& textureInfo);
 		static AssetHandle RegisterTexture(const TextureInfo& textureInfo);
 		static AssetHandle RegisterMesh(const MeshInfo& meshInfo);
 

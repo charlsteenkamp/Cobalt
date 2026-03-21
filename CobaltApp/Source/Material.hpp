@@ -3,6 +3,7 @@
 #include "Vulkan/Pipeline.hpp"
 #include "Vulkan/HashUtils.hpp"
 #include "Vulkan/DescriptorBufferManager.hpp"
+#include "Vulkan/ShaderCursor.hpp"
 
 #include <glm/glm.hpp>
 
@@ -62,12 +63,6 @@ namespace Cobalt
 		}
 	};
 
-	struct SampledTexture
-	{
-		VkImageView ImageView = VK_NULL_HANDLE;
-		VkSampler Sampler = VK_NULL_HANDLE;
-	};
-
 	enum class TransparencyMode
 	{
 		Opaque,
@@ -84,12 +79,22 @@ namespace Cobalt
 		std::unordered_map<std::string, Pipeline*> PassPipelines;
 		TransparencyMode Transparency;
 		PassDescriptorHandles PassDescriptors;
+
+		ShaderCursor GetShaderCursor(const std::string& passName, uint32_t frameIndex) const
+		{
+			CO_PROFILE_FN();
+
+			ShaderParameter& rootShaderParam = PassPipelines.at(passName)->GetInfo().Shader->GetRootShaderParameter();
+			DescriptorHandle descriptorHandle = PassDescriptors.at(passName)[frameIndex];
+
+			return ShaderCursor(rootShaderParam, descriptorHandle);
+		}
 	};
 
 	struct MaterialInfo
 	{
 		GPUPackedMaterial PackedMaterial;
-		std::vector<SampledTexture> SampledTextures;
+		std::vector<Image> SampledTextures;
 		std::string ShaderEffectName;
 
 		MaterialHash Hash() const
@@ -128,7 +133,7 @@ namespace Cobalt
 		MaterialHandle GetMaterialHandle() const { return mMaterialHandle; }
 
 	private:
-		const MaterialInfo& mMaterialInfo;
+		MaterialInfo mMaterialInfo;
 		const ShaderEffect* mShaderEffect = nullptr;
 
 		MaterialHandle mMaterialHandle = -1;

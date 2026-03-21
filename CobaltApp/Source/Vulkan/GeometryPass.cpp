@@ -40,37 +40,7 @@ namespace Cobalt
 		builder.SetClearColor(mOCRAttachment);
 		builder.SetClearColor(mEmissiveAttachment);
 
-#if 0
 		mShader = Renderer::GetShaderLibrary().GetShader("Deferred\\GeometryPass.slang");
-
-		uint32_t frameCount = GraphicsContext::Get().GetFrameCount();
-
-		PipelineInfo pipelineInfo = {
-			.Shader = *mShader,
-			.PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-			.CullMode = VK_CULL_MODE_NONE,
-			.FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-			.EnableDepthTesting = true,
-			.ColorAttachments = {
-				{ false, VK_FORMAT_R32G32B32A32_SFLOAT },
-				{ false, VK_FORMAT_R32G32B32A32_SFLOAT },
-				{ false, VK_FORMAT_R32G32B32A32_SFLOAT },
-				{ false, VK_FORMAT_R32G32B32A32_SFLOAT },
-				{ false, VK_FORMAT_R32G32B32A32_SFLOAT }
-			},
-			.DepthAttachmentFormat = VK_FORMAT_D32_SFLOAT
-		};
-
-		mPipeline = std::make_unique<Pipeline>(pipelineInfo);
-
-		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
-		mDescriptorHandles.resize(frameCount);
-
-		for (uint32_t i = 0; i < frameCount; i++)
-		{
-			mDescriptorHandles[i] = descriptorBufferManager.AllocateDescriptor(mShader->GetDescriptorSetLayouts()[0], true, true);
-		}
-#endif
 	}
 
 	void GeometryPass::Execute(VkCommandBuffer commandBuffer, const RenderContext& renderContext)
@@ -97,12 +67,24 @@ namespace Cobalt
 
 		uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
 
-		ShaderCursor shaderCursor(mShader->GetRootShaderParameter(), mDescriptorHandles[frameIndex]);
-		shaderCursor.Field("scene").Write(*renderContext.SceneBuffer);
-		shaderCursor.Field("objects").Write(*renderContext.ObjectBuffer);
-		shaderCursor.Field("materials").Write(*renderContext.PackedMaterialBuffer);
-		//shaderCursor.Field("textures").Write(renderContext.BindlessImages);
-		shaderCursor.Finalize();
+		const ShaderEffect* lastShaderEffect = nullptr;
+
+		for (const auto& draw : renderContext.DrawCalls)
+		{
+			const ShaderEffect* shaderEffect = draw.Material->GetShaderEffect();
+
+			if (shaderEffect == lastShaderEffect)
+				continue;
+
+			lastShaderEffect = shaderEffect;
+
+			ShaderCursor shaderCursor = shaderEffect->GetShaderCursor(mName, frameIndex);
+			shaderCursor.Field("scene").Write(*renderContext.SceneBuffer);
+			shaderCursor.Field("objects").Write(*renderContext.ObjectBuffer);
+			shaderCursor.Field("materials").Write(*renderContext.PackedMaterialBuffer);
+			shaderCursor.Field("textures").Write(draw.Material->GetMaterialInfo().SampledTextures);
+			shaderCursor.Finalize();
+		}
 
 		Renderer::DrawObjects(commandBuffer, mName, renderContext);
 	}

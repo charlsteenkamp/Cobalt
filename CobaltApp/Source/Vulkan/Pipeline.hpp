@@ -15,7 +15,7 @@ namespace Cobalt
 
 	struct PipelineInfo
 	{
-		const Shader& Shader;
+		Shader* Shader;
 
 		VkPrimitiveTopology PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		VkCullModeFlags CullMode = VK_CULL_MODE_NONE;

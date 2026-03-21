@@ -36,7 +36,7 @@ namespace Cobalt
 		{
 			sData->SceneBuffers[i]          = VulkanBuffer::CreateMappedBuffer(sizeof(GPUScene), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 			sData->ObjectBuffers[i]         = VulkanBuffer::CreateMappedBuffer(sData->sMaxObjectCount * sizeof(GPUObject), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
-			sData->PackedMaterialBuffers[i] = VulkanBuffer::CreateMappedBuffer(sData->sMaxMaterialCount * sizeof(GPUPackedMaterial), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
+			sData->PackedMaterialBuffers[i] = VulkanBuffer::CreateMappedBuffer(MaterialSystem::GetMaxMaterialCount() * sizeof(GPUPackedMaterial), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 		}
 
 		sData->mRenderContext.GPUObjects.reserve(sData->sMaxObjectCount);

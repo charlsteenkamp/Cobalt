@@ -40,7 +40,7 @@ namespace Cobalt
 		mShader = Renderer::GetShaderLibrary().GetShader("Deferred\\LightingPass.slang");
 
 		PipelineInfo lightingPassPipelineInfo = {
-			.Shader = *mShader,
+			.Shader = mShader,
 			.PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 			.CullMode = VK_CULL_MODE_NONE,
 			.FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
@@ -50,9 +50,7 @@ namespace Cobalt
 			}
 		};
 
-		GraphicsContext::Get().GetPipelineRegistry().BuildPipeline(mName, lightingPassPipelineInfo);
-
-		//mPipeline = std::make_unique<Pipeline>(lightingPassPipelineInfo);
+		mPipeline = GraphicsContext::Get().GetPipelineRegistry().BuildPipeline(mName, lightingPassPipelineInfo);
 
 		auto& descriptorBufferManager = GraphicsContext::Get().GetDescriptorBufferManager();
 
