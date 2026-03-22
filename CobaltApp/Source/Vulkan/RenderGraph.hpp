@@ -17,13 +17,14 @@ namespace Cobalt
 	struct RGCompiledPass
 	{
 		std::vector<VkImageMemoryBarrier2> ImageBarriers;
+		std::vector<VkImageMemoryBarrier2> PostImageBarriers;
 
 		VkRect2D RenderArea;
 		std::vector<VkRenderingAttachmentInfo> ColorAttachments;
 		VkRenderingAttachmentInfo DepthStencilAttachment;
 
 		int32_t BackbufferAttachmentIndex = -1;
-		std::vector<int32_t> BackBufferBarrierIndices;
+		std::vector<int32_t> BackBufferBarrierIndices, BackBufferPostBarrierIndices;
 		bool HasDepthAttachment = false;
 		bool HasStencilAttachment = false;
 

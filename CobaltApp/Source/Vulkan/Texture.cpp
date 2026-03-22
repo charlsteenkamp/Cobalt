@@ -92,7 +92,7 @@ namespace Cobalt
 		if (mUsage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
 		{
 			//imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			mImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			//mImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		}
 
 		VmaAllocationCreateInfo allocCreateInfo = {

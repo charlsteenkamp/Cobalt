@@ -2,6 +2,7 @@
 #include "RenderGraph.hpp"
 #include "RenderGraphBuilder.hpp"
 #include "RenderPass.hpp"
+#include "VulkanCommands.hpp"
 
 #include <algorithm>
 #include <ranges>
@@ -16,10 +17,10 @@ namespace Cobalt
 
 		switch (accessType)
 		{
-		case RGAccessType::ColorAttachmentWrite: return true;
-		case RGAccessType::ShaderRead: return false;
-		case RGAccessType::DepthAttachment: return true;
-		case RGAccessType::Present: return true;
+			case RGAccessType::ColorAttachmentWrite: return true;
+			case RGAccessType::ShaderRead: return false;
+			case RGAccessType::DepthAttachment: return true;
+			case RGAccessType::Present: return true;
 		}
 
 		return false;
@@ -31,10 +32,10 @@ namespace Cobalt
 
 		switch (accessType)
 		{
-		case RGAccessType::ColorAttachmentWrite: return false;
-		case RGAccessType::ShaderRead: return true;
-		case RGAccessType::DepthAttachment: return true;
-		case RGAccessType::Present: return false;
+			case RGAccessType::ColorAttachmentWrite: return false;
+			case RGAccessType::ShaderRead: return true;
+			case RGAccessType::DepthAttachment: return true;
+			case RGAccessType::Present: return false;
 		}
 
 		return false;
@@ -46,10 +47,10 @@ namespace Cobalt
 
 		switch (accessType)
 		{
-		case RGAccessType::ColorAttachmentWrite: return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		case RGAccessType::ShaderRead: return VK_IMAGE_USAGE_SAMPLED_BIT;
-		case RGAccessType::DepthAttachment: return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		case RGAccessType::Present: return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			case RGAccessType::ColorAttachmentWrite: return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			case RGAccessType::ShaderRead: return VK_IMAGE_USAGE_SAMPLED_BIT;
+			case RGAccessType::DepthAttachment: return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			case RGAccessType::Present: return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		}
 
 		return VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
@@ -73,6 +74,7 @@ namespace Cobalt
 			case RGAccessType::None:
 			{
 				accessInfo.StageFlags = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+				//accessInfo.StageFlags = 0;
 				accessInfo.AccessMask = 0;
 				accessInfo.ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -97,7 +99,7 @@ namespace Cobalt
 			case RGAccessType::DepthAttachment:
 			{
 				accessInfo.StageFlags = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
-				accessInfo.StageFlags = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				accessInfo.AccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 				accessInfo.ImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 				return accessInfo;
@@ -427,9 +429,6 @@ namespace Cobalt
 
 			for (auto [resourceHandle, accessType] : passTouchList[sortedPassHandle])
 			{
-				if (IsReadRGAccessType(accessType) && accessType != RGAccessType::DepthAttachment)
-					continue;
-
 				// Fill in attachment info
 
 				VkRenderingAttachmentInfo renderingAttachmentInfo{};
@@ -486,30 +485,45 @@ namespace Cobalt
 							.height = mResources[resourceHandle]->GetHeight()
 						};
 					}
-				}
 
-				if (mResourceInfos[resourceHandle].ResourceType == RGResourceType::DepthAttachment)
-					compiledPass.DepthStencilAttachment = renderingAttachmentInfo;
-				else
-					compiledPass.ColorAttachments.push_back(renderingAttachmentInfo);
+					switch (mResourceInfos[resourceHandle].ResourceType)
+					{
+						case RGResourceType::DepthAttachment:
+						{
+							compiledPass.DepthStencilAttachment = renderingAttachmentInfo;
+							break;
+						}
+						case RGResourceType::ColorAttachment:
+						{
+							compiledPass.ColorAttachments.push_back(renderingAttachmentInfo);
+							break;
+						}
+					}
+				}
 
 				// Fill in image barrier info
 
 				uint32_t minDistance = mPasses.size();
 				RGPassHandle lastPassHandle = 0; // sorted
-				RGAccessType lastAccessType;
+				RGPassHandle earliestPassHandle = mPassOrder.size();
+				RGAccessType lastAccessType = RGAccessType::None;
 
 				bool shouldInsertBarrier = false;
 
-				// Find the last pass that accessed the resource by finding the minimum "distance"
+				// Find the earliest pass that accesses the resource and also
+				// find the last pass that accessed the resource by finding the minimum "distance"
 				// between the current sorted pass and the previous one
 
 				for (auto [otherPassHandle, otherAccessType] : resourceTouchList[resourceHandle])
 				{
+					RGPassHandle sortedOtherPassHandle = mPassOrder[otherPassHandle];
+
+					if (sortedOtherPassHandle < earliestPassHandle)
+						earliestPassHandle = sortedOtherPassHandle;
+
 					if (passAdjacencyGraph[otherPassHandle].find(sortedPassHandle) == passAdjacencyGraph[otherPassHandle].end())
 						continue;
 
-					RGPassHandle sortedOtherPassHandle = mPassOrder[otherPassHandle];
 					uint32_t distance = sortedPassHandle - otherPassHandle;
 
 					if (distance < minDistance)
@@ -522,18 +536,22 @@ namespace Cobalt
 					}
 				}
 
-				// A barrier should also be inserted if it's the back buffer
+				// If it is the first instance of accessing the resource, transition the image layout
+				shouldInsertBarrier |= earliestPassHandle == sortedPassHandle;
 
-				if (shouldInsertBarrier)
+				// A barrier should also be inserted if it's the back buffer
+				if (resourceHandle == RGResourceHandle_BackBufferAttachment)
+				{
+					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(VK_NULL_HANDLE, VK_IMAGE_ASPECT_COLOR_BIT, RGAccessType::None, RGAccessType::ColorAttachmentWrite));
+					compiledPass.PostImageBarriers.push_back(MakeBarrierForResourceTransition(VK_NULL_HANDLE, VK_IMAGE_ASPECT_COLOR_BIT, RGAccessType::ColorAttachmentWrite, RGAccessType::Present));
+					compiledPass.BackBufferBarrierIndices = { (int32_t)compiledPass.ImageBarriers.size() - 1 };
+					compiledPass.BackBufferPostBarrierIndices = { (int32_t)compiledPass.PostImageBarriers.size() - 1 };
+				}
+				else if (shouldInsertBarrier)
 				{
 					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(mResources[resourceHandle]->GetImage(), mResources[resourceHandle]->GetImageAspectFlags(), lastAccessType, accessType));
 				}
-				else if (compiledPass.BackbufferAttachmentIndex == compiledPass.ColorAttachments.size() - 1)
-				{
-					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(VK_NULL_HANDLE, VK_IMAGE_ASPECT_COLOR_BIT, RGAccessType::None, RGAccessType::ColorAttachmentWrite));
-					compiledPass.ImageBarriers.push_back(MakeBarrierForResourceTransition(VK_NULL_HANDLE, VK_IMAGE_ASPECT_COLOR_BIT, RGAccessType::ColorAttachmentWrite, RGAccessType::Present));
-					compiledPass.BackBufferBarrierIndices = { (int32_t)compiledPass.ImageBarriers.size() - 1, (int32_t)compiledPass.ImageBarriers.size() - 2 };
-				}
+				
 			}
 
 			mCompiledPasses.push_back(compiledPass);
@@ -592,9 +610,7 @@ namespace Cobalt
 			if (!compiledPass.ImageBarriers.empty())
 			{
 				for (uint32_t i : compiledPass.BackBufferBarrierIndices)
-				{
 					compiledPass.ImageBarriers[i].image = backBufferImage;
-				}
 
 				VkDependencyInfo dependencyInfo = {
 					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -621,6 +637,21 @@ namespace Cobalt
 			m_vkCmdBeginRenderingKHR(commandBuffer, &renderingInfo);
 			compiledPass.Pass->Execute(commandBuffer, renderContext);
 			m_vkCmdEndRenderingKHR(commandBuffer);
+
+			if (!compiledPass.PostImageBarriers.empty())
+			{
+				for (uint32_t i : compiledPass.BackBufferPostBarrierIndices)
+					compiledPass.PostImageBarriers[i].image = backBufferImage;
+
+				VkDependencyInfo dependencyInfo = {
+					.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+					.imageMemoryBarrierCount = (uint32_t)compiledPass.PostImageBarriers.size(),
+					.pImageMemoryBarriers = compiledPass.PostImageBarriers.data(),
+				};
+
+				vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+
+			}
 		}
 	}
 
