@@ -47,6 +47,41 @@ namespace Cobalt
 		return sData->Textures[index].get();
 	}
 
+	Texture* AssetManager::GetTexture(const std::string& name)
+	{
+		CO_PROFILE_FN();
+
+		if (!sData->AssetNameHandleMap.contains(name))
+			return nullptr;
+
+		AssetHandle assetHandle = sData->AssetNameHandleMap.at(name);
+		size_t index = sData->AssetHandleIdMap.at(assetHandle).Index;
+		return sData->Textures[index].get();
+	}
+
+	Cubemap* AssetManager::GetCubemap(AssetHandle textureHandle)
+	{
+		CO_PROFILE_FN();
+
+		if (!sData->AssetHandleIdMap.contains(textureHandle))
+			return nullptr;
+
+		size_t index = sData->AssetHandleIdMap.at(textureHandle).Index;
+		return sData->Cubemaps[index].get();
+	}
+
+	Cubemap* AssetManager::GetCubemap(const std::string& name)
+	{
+		CO_PROFILE_FN();
+
+		if (!sData->AssetNameHandleMap.contains(name))
+			return nullptr;
+
+		AssetHandle assetHandle = sData->AssetNameHandleMap.at(name);
+		size_t index = sData->AssetHandleIdMap.at(assetHandle).Index;
+		return sData->Cubemaps[index].get();
+	}
+
 	Mesh* AssetManager::GetMesh(AssetHandle meshHandle)
 	{
 		CO_PROFILE_FN();
@@ -58,20 +93,19 @@ namespace Cobalt
 		return sData->Meshes[index].get();
 	}
 
-	AssetHandle AssetManager::RegisterDefaultTexture(const TextureInfo& textureInfo)
+	Mesh* AssetManager::GetMesh(const std::string& name)
 	{
 		CO_PROFILE_FN();
 
-		AssetHandle assetHandle = CO_DEFAULT_TEXTURE_HANDLE;
+		if (!sData->AssetNameHandleMap.contains(name))
+			return nullptr;
 
-		sData->Textures.push_back(std::make_unique<Texture>(textureInfo));
-		sData->AssetHandleIdMap[assetHandle] = { EAssetType::Texture, sData->Textures.size() - 1 };
-
-		return assetHandle;
-
+		AssetHandle assetHandle = sData->AssetNameHandleMap.at(name);
+		size_t index = sData->AssetHandleIdMap.at(assetHandle).Index;
+		return sData->Meshes[index].get();
 	}
 
-	AssetHandle AssetManager::RegisterTexture(const TextureInfo& textureInfo)
+	AssetHandle AssetManager::RegisterTexture(const std::string& name, const TextureInfo& textureInfo)
 	{
 		CO_PROFILE_FN();
 
@@ -79,11 +113,25 @@ namespace Cobalt
 
 		sData->Textures.push_back(std::make_unique<Texture>(textureInfo));
 		sData->AssetHandleIdMap[assetHandle] = { EAssetType::Texture, sData->Textures.size() - 1 };
+		sData->AssetNameHandleMap[name] = assetHandle;
 
 		return assetHandle;
 	}
 
-	AssetHandle AssetManager::RegisterMesh(const MeshInfo& meshInfo)
+	AssetHandle AssetManager::RegisterCubemap(const std::string& name, const CubemapInfo& cubemapInfo)
+	{
+		CO_PROFILE_FN();
+
+		AssetHandle assetHandle = GenerateAssetHandle();
+
+		sData->Cubemaps.push_back(std::make_unique<Cubemap>(cubemapInfo));
+		sData->AssetHandleIdMap[assetHandle] = { EAssetType::Cubemap, sData->Cubemaps.size() - 1 };
+		sData->AssetNameHandleMap[name] = assetHandle;
+
+		return assetHandle;
+	}
+
+	AssetHandle AssetManager::RegisterMesh(const std::string& name, const MeshInfo& meshInfo)
 	{
 		CO_PROFILE_FN();
 
@@ -91,6 +139,7 @@ namespace Cobalt
 
 		sData->Meshes.push_back(std::make_unique<Mesh>(meshInfo));
 		sData->AssetHandleIdMap[assetHandle] = { EAssetType::Mesh, sData->Meshes.size() - 1 };
+		sData->AssetNameHandleMap[name] = assetHandle;
 
 		return assetHandle;
 	}

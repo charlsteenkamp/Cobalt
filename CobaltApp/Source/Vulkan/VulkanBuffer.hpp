@@ -23,7 +23,7 @@ namespace Cobalt
 		void Map(void** data);
 		void Unmap();
 
-		void CopyData(const void* src, uint32_t size = 0);
+		void CopyData(const void* src, size_t dstOffset = 0, uint32_t size = 0);
 
 		VkDeviceAddress GetDeviceAddress() const;
 

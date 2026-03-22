@@ -23,6 +23,7 @@ namespace Cobalt
 	public:
 		void Write(const VulkanBuffer& buffer);
 		void Write(const Texture& texture);
+		void Write(const Cubemap& cubemap);
 		void Write(const Image& image);
 		void Write(const std::vector<Image>& images);
 
@@ -57,6 +58,12 @@ namespace Cobalt
 		ShaderCursor WriteField(const std::string& name, const Texture& texture) const
 		{
 			Field(name).Write(texture);
+			return *this;
+		}
+
+		ShaderCursor WriteField(const std::string& name, const Cubemap& cubemap) const
+		{
+			Field(name).Write(cubemap);
 			return *this;
 		}
 

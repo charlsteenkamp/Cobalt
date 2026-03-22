@@ -48,7 +48,7 @@ namespace Cobalt
 
 		mCubeMesh->SetMaterial(materialSystem.GetMaterial("PBR"));
 
-		const Texture* defaultTexture = AssetManager::GetTexture(CO_DEFAULT_TEXTURE_HANDLE);
+		const Texture* defaultTexture = AssetManager::GetTexture("Default");
 		Image defaultTextureImage = { defaultTexture->GetSampler(), defaultTexture->GetImageView(), defaultTexture->GetImageLayout() };
 
 		for (uint32_t y = 0; y < sSphereGridSize; y++)

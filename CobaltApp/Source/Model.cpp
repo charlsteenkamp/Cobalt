@@ -83,7 +83,9 @@ namespace Cobalt
 
 			TextureInfo textureInfo;
 
-			AssetHandle textureAssetHandle = AssetManager::RegisterTexture(textureInfo);
+			std::string textureName = std::format("{}: Texture {}", mName, i);
+
+			AssetHandle textureAssetHandle = AssetManager::RegisterTexture(textureName, textureInfo);
 			mTextureAssetHandles[i] = textureAssetHandle;
 		}
 	}
@@ -166,7 +168,7 @@ namespace Cobalt
 
 			if (!materialSystem.GetMaterial(materialInfo))
 			{
-				std::string materialName = std::format("{}{}", mName, mMaterials.size());
+				std::string materialName = std::format("{}: Material {}", mName, mMaterials.size());
 
 				mMaterials.push_back(materialSystem.BuildMaterial(materialName, materialInfo));
 			}
@@ -275,7 +277,9 @@ namespace Cobalt
 				.MaterialRef = material
 			};
 
-			AssetHandle meshAssetHandle = AssetManager::RegisterMesh(meshInfo);
+			std::string meshName = std::format("{}: Mesh {}", mName, i);
+
+			AssetHandle meshAssetHandle = AssetManager::RegisterMesh(meshName, meshInfo);
 			mMeshAssetHandles[i] = meshAssetHandle;
 		}
 	}

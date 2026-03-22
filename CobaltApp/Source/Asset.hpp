@@ -16,7 +16,7 @@ namespace Cobalt
 		None,
 		Texture,
 		Mesh,
-		Material
+		Cubemap
 	};
 
 }

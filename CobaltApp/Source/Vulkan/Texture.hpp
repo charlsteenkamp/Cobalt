@@ -2,6 +2,8 @@
 #include "VulkanUtils.hpp"
 #include <vma/vk_mem_alloc.h>
 #include <string>
+#include <filesystem>
+#include <array>
 
 namespace Cobalt
 {
@@ -90,6 +92,60 @@ namespace Cobalt
 		VkImageUsageFlags mUsage;
 		VkImageAspectFlags mImageAspect;
 		uint32_t mMipLevels;
+	};
+
+	struct CubemapFacePaths
+	{
+		std::filesystem::path RightFace;
+		std::filesystem::path LeftFace;
+		std::filesystem::path UpFace;
+		std::filesystem::path DownFace;
+		std::filesystem::path FrontFace;
+		std::filesystem::path BackFace;
+
+		std::array<std::filesystem::path, 6> GetPaths() const
+		{
+			return { RightFace, LeftFace, UpFace, DownFace, FrontFace, BackFace };
+		}
+	};
+
+	struct CubemapInfo
+	{
+		CubemapFacePaths FacePaths;
+	};
+
+	class Cubemap
+	{
+	public:
+		Cubemap(const CubemapInfo& cubemapInfo);
+		~Cubemap();
+
+	public:
+		VkImage GetImage() const { return mImage; }
+		VkImageView GetImageView() const { return mImageView; }
+		VkSampler GetSampler() const { return mSampler; }
+
+		VkImageLayout GetImageLayout() const { return mImageLayout; }
+
+	private:
+		uint8_t* LoadDataFromFile(const std::filesystem::path& filePath);
+		void Create();
+		void CopyData(const std::vector<uint8_t*>& facesData);
+
+	private:
+		VkImage mImage = VK_NULL_HANDLE;
+		VkImageView mImageView = VK_NULL_HANDLE;
+		VkSampler mSampler = VK_NULL_HANDLE;
+
+		VmaAllocation mAllocation;
+		VmaAllocationInfo mAllocationInfo;
+
+		VkImageLayout mImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+		uint32_t mWidth, mHeight;
+		uint32_t mMipLevels = 1;
+
+		VkFormat mFormat;
 	};
 
 }

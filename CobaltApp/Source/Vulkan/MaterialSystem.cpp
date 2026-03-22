@@ -50,7 +50,7 @@ namespace Cobalt
 
 		uint32_t defaultTextureData = 0xFFFFFFFF;
 
-		AssetHandle defaultTextureAsset = AssetManager::RegisterDefaultTexture(TextureInfo(1, 1, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT));
+		AssetHandle defaultTextureAsset = AssetManager::RegisterTexture("Default", TextureInfo(1, 1, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT));
 		Texture* defaultTexture = AssetManager::GetTexture(defaultTextureAsset);
 		defaultTexture->CopyData(&defaultTextureData);
 

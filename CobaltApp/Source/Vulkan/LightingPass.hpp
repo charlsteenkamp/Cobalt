@@ -3,6 +3,11 @@
 #include "Shader.hpp"
 #include "Pipeline.hpp"
 #include "ShaderCursor.hpp"
+#include "Texture.hpp"
+
+#include <vector>
+
+#define CO_ENABLE_LIGHTING_PASS_SKYBOX 0
 
 namespace Cobalt
 {
@@ -18,12 +23,18 @@ namespace Cobalt
 		void Execute(VkCommandBuffer commandBuffer, const RenderContext& renderContext) override;
 
 	private:
-		Shader* mShader = nullptr;
-		Pipeline* mPipeline = nullptr;
-
-		std::vector<DescriptorHandle> mDescriptorHandles;
-
 		RGResourceHandle mPositionAttachment, mBaseColorAttachment, mNormalAttachment, mOCRAttachment, mEmissiveAttachment;
+
+		Pipeline* mLightingPipeline = nullptr;
+
+		std::vector<DescriptorHandle> mLightingDescriptors;
+
+#if CO_ENABLE_LIGHTING_PASS_SKYBOX
+		Pipeline* mSkyboxPipeline = nullptr;
+		std::vector<DescriptorHandle> mSkyboxDescriptors;
+		std::vector<std::unique_ptr<VulkanBuffer>> mSkyboxViewProjectionBuffers;
+		std::unique_ptr<Cubemap> mSkybox;
+#endif
 	};
 
 }

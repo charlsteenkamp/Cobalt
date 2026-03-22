@@ -59,6 +59,15 @@ namespace Cobalt
 		});
 	}
 
+	void ShaderCursor::Write(const Cubemap& cubemap)
+	{
+		CO_PROFILE_FN();
+
+		Write(Image {
+			cubemap.GetSampler(), cubemap.GetImageView(), cubemap.GetImageLayout()
+		});
+	}
+
 	void ShaderCursor::Write(const Image& image)
 	{
 		CO_PROFILE_FN();

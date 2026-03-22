@@ -221,4 +221,160 @@ namespace Cobalt
 			//vkFreeMemory(GraphicsContext::Get().GetDevice(), mMemory, nullptr);
 	}
 
+	Cubemap::Cubemap(const CubemapInfo& cubemapInfo)
+	{
+		CO_PROFILE_FN();
+
+		auto paths = cubemapInfo.FacePaths.GetPaths();
+
+		std::vector<uint8_t*> facesData(6);
+
+		for (uint32_t i = 0; i < facesData.size(); i++)
+			facesData[i] = LoadDataFromFile(paths[i]);
+
+		Create();
+		CopyData(facesData);
+
+		for (uint8_t* face : facesData)
+			free(face);
+	}
+
+	Cubemap::~Cubemap()
+	{
+		CO_PROFILE_FN();
+	}
+
+	uint8_t* Cubemap::LoadDataFromFile(const std::filesystem::path& filePath)
+	{
+		CO_PROFILE_FN();
+
+		int32_t channelCount = 0;
+
+		uint8_t* data = stbi_load(filePath.string().c_str(), (int32_t*)&mWidth, (int32_t*)&mHeight, &channelCount, STBI_rgb_alpha);
+
+		if (channelCount == 4)
+		{
+			mFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+			return data;
+		}
+
+		assert(false);
+	}
+
+	void Cubemap::Create()
+	{
+		// Create image
+
+		VkImageCreateInfo imageCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = mFormat,
+			.extent = { mWidth, mHeight, 1 },
+			.mipLevels = mMipLevels,
+			.arrayLayers = 6,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.queueFamilyIndexCount = 0,
+			.pQueueFamilyIndices = nullptr,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+		};
+
+		VmaAllocationCreateInfo allocCreateInfo = {
+			.usage = VMA_MEMORY_USAGE_AUTO,
+		};
+
+		VK_CALL(vmaCreateImage(GraphicsContext::Get().GetAllocator(), &imageCreateInfo, &allocCreateInfo, &mImage, &mAllocation, &mAllocationInfo));
+
+		// Create image view
+
+		VkImageViewCreateInfo imageViewCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.flags = 0,
+			.image = mImage,
+			.viewType = VK_IMAGE_VIEW_TYPE_CUBE,
+			.format = mFormat,
+			.components = {
+				.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+			},
+			.subresourceRange = {
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = mMipLevels,
+				.baseArrayLayer = 0,
+				.layerCount = 6
+			}
+		};
+
+		VK_CALL(vkCreateImageView(GraphicsContext::Get().GetDevice(), &imageViewCreateInfo, nullptr, &mImageView));
+
+		// Create sampler if needed
+
+		VkPhysicalDeviceProperties physicalDeviceProperties;
+		vkGetPhysicalDeviceProperties(GraphicsContext::Get().GetPhysicalDevice(), &physicalDeviceProperties);
+
+		VkSamplerCreateInfo samplerCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+			.flags = 0,
+			.magFilter = VK_FILTER_LINEAR,
+			.minFilter = VK_FILTER_LINEAR,
+			.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+			.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+			.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+			.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+			.mipLodBias = 0.0f,
+			.anisotropyEnable = VK_TRUE,
+			.maxAnisotropy = physicalDeviceProperties.limits.maxSamplerAnisotropy,
+			.compareEnable = VK_FALSE,
+			.compareOp = VK_COMPARE_OP_NEVER,
+			.minLod = 0.0f,
+			.maxLod = (float)mMipLevels,
+			.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE,
+			.unnormalizedCoordinates = VK_FALSE,
+		};
+
+		VK_CALL(vkCreateSampler(GraphicsContext::Get().GetDevice(), &samplerCreateInfo, nullptr, &mSampler));
+	}
+
+	void Cubemap::CopyData(const std::vector<uint8_t*>& facesData)
+	{
+		CO_PROFILE_FN();
+
+		VkDeviceSize imageSize = mAllocationInfo.size;
+		VkDeviceSize layerSize = imageSize / 6;
+
+		std::unique_ptr<VulkanBuffer> stagingBuffer = VulkanBuffer::CreateMappedBuffer(mAllocationInfo.size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+
+		for (uint32_t i = 0; i < 6; i++)
+			stagingBuffer->CopyData(facesData.data(), i * layerSize, layerSize);
+
+		std::vector<VkBufferImageCopy> bufferImageCopies;
+
+		for (uint32_t i = 0; i < facesData.size(); i++)
+		{
+			bufferImageCopies.push_back(VkBufferImageCopy {
+				.bufferOffset = i * layerSize,
+				.imageSubresource = {
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.mipLevel = 0,
+					.baseArrayLayer = i,
+					.layerCount = 1,
+				},
+				.imageExtent = { mWidth, mHeight, 1 },
+			});
+		}
+
+		GraphicsContext::Get().SubmitSingleTimeCommands(GraphicsContext::Get().GetQueue(), [&](VkCommandBuffer commandBuffer)
+		{
+			VulkanCommands::TransitionImageLayout(commandBuffer, mImage, VK_IMAGE_ASPECT_COLOR_BIT, mMipLevels, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			vkCmdCopyBufferToImage(commandBuffer, stagingBuffer->GetBuffer(), mImage, mImageLayout, (uint32_t)bufferImageCopies.size(), bufferImageCopies.data());
+			VulkanCommands::TransitionImageLayout(commandBuffer, mImage, VK_IMAGE_ASPECT_COLOR_BIT, mMipLevels, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		});
+	}
+
 }

@@ -77,11 +77,11 @@ namespace Cobalt
 		vmaUnmapMemory(GraphicsContext::Get().GetAllocator(), mAllocation);
 	}
 
-	void VulkanBuffer::CopyData(const void* src, uint32_t size)
+	void VulkanBuffer::CopyData(const void* src, size_t dstOffset, uint32_t size)
 	{
 		CO_PROFILE_FN();
 
-		memcpy(mAllocationInfo.pMappedData, src, size == 0 ? mAllocationInfo.size : size);
+		memcpy((void*)((size_t)mAllocationInfo.pMappedData + dstOffset), src, size == 0 ? mAllocationInfo.size : size);
 	}
 
 	VkDeviceAddress VulkanBuffer::GetDeviceAddress() const
