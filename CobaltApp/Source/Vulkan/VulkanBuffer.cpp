@@ -77,7 +77,7 @@ namespace Cobalt
 		vmaUnmapMemory(GraphicsContext::Get().GetAllocator(), mAllocation);
 	}
 
-	void VulkanBuffer::CopyData(const void* src, size_t dstOffset, uint32_t size)
+	void VulkanBuffer::CopyData(const void* src, uint32_t size, size_t dstOffset)
 	{
 		CO_PROFILE_FN();
 
