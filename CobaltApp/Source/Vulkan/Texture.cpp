@@ -252,13 +252,8 @@ namespace Cobalt
 
 		uint8_t* data = stbi_load(filePath.string().c_str(), (int32_t*)&mWidth, (int32_t*)&mHeight, &channelCount, STBI_rgb_alpha);
 
-		if (channelCount == 4)
-		{
-			mFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
-			return data;
-		}
-
-		assert(false);
+		mFormat = VK_FORMAT_R8G8B8A8_SRGB;
+		return data;
 	}
 
 	void Cubemap::Create()
@@ -345,13 +340,13 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		VkDeviceSize imageSize = mAllocationInfo.size;
-		VkDeviceSize layerSize = imageSize / 6;
+		VkDeviceSize imageSize = mWidth * mHeight * 4 * 6;
+		VkDeviceSize layerSize = mWidth * mHeight * 4;
 
-		std::unique_ptr<VulkanBuffer> stagingBuffer = VulkanBuffer::CreateMappedBuffer(mAllocationInfo.size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+		std::unique_ptr<VulkanBuffer> stagingBuffer = VulkanBuffer::CreateMappedBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
 		for (uint32_t i = 0; i < 6; i++)
-			stagingBuffer->CopyData(facesData.data(), i * layerSize, layerSize);
+			stagingBuffer->CopyData(facesData[i], layerSize, i * layerSize);
 
 		std::vector<VkBufferImageCopy> bufferImageCopies;
 
@@ -371,10 +366,12 @@ namespace Cobalt
 
 		GraphicsContext::Get().SubmitSingleTimeCommands(GraphicsContext::Get().GetQueue(), [&](VkCommandBuffer commandBuffer)
 		{
-			VulkanCommands::TransitionImageLayout(commandBuffer, mImage, VK_IMAGE_ASPECT_COLOR_BIT, mMipLevels, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			vkCmdCopyBufferToImage(commandBuffer, stagingBuffer->GetBuffer(), mImage, mImageLayout, (uint32_t)bufferImageCopies.size(), bufferImageCopies.data());
-			VulkanCommands::TransitionImageLayout(commandBuffer, mImage, VK_IMAGE_ASPECT_COLOR_BIT, mMipLevels, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			VulkanCommands::TransitionImageLayout(commandBuffer, mImage, VK_IMAGE_ASPECT_COLOR_BIT, mMipLevels, 6, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			vkCmdCopyBufferToImage(commandBuffer, stagingBuffer->GetBuffer(), mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (uint32_t)bufferImageCopies.size(), bufferImageCopies.data());
+			VulkanCommands::TransitionImageLayout(commandBuffer, mImage, VK_IMAGE_ASPECT_COLOR_BIT, mMipLevels, 6, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		});
+
+		mImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
 
 }

@@ -1,6 +1,7 @@
 #include "copch.hpp"
 #include "GeometryPass.hpp"
 #include "Renderer.hpp"
+#include "VulkanCommands.hpp"
 
 namespace Cobalt
 {
@@ -35,7 +36,7 @@ namespace Cobalt
 		builder.AddDependency(mDepthStencilAttachment, RGAccessType::DepthAttachment);
 
 		builder.SetClearColor(mPositionAttachment);
-		builder.SetClearColor(mBaseColorAttachment);
+		builder.SetClearColor(mBaseColorAttachment, { 0.0f, 0.0f, 0.0f, 0.0f });
 		builder.SetClearColor(mNormalAttachment);
 		builder.SetClearColor(mOCRAttachment);
 		builder.SetClearColor(mEmissiveAttachment);
@@ -47,23 +48,7 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		VkExtent2D extent = GraphicsContext::Get().GetSwapchain().GetExtent();
-
-		VkViewport viewport = {
-			.x = 0,
-			.y = (float)extent.height,
-			.width = (float)extent.width,
-			.height = -(float)extent.height,
-			.minDepth = 0.0f,
-			.maxDepth = 1.0f
-		};
-
-		VkRect2D scissor = {
-			.extent = extent
-		};
-
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		VulkanCommands::SetViewport(commandBuffer, GraphicsContext::Get().GetSwapchain().GetExtent());
 
 		uint32_t frameIndex = GraphicsContext::Get().GetFrameIndex();
 

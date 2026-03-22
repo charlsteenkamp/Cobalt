@@ -11,6 +11,27 @@ namespace Cobalt
 	class VulkanCommands
 	{
 	public:
+		static void SetViewport(VkCommandBuffer commandBuffer, VkExtent2D extent)
+		{
+			CO_PROFILE_FN();
+
+			VkViewport viewport = {
+				.x = 0,
+				.y = (float)extent.height,
+				.width = (float)extent.width,
+				.height = -(float)extent.height,
+				.minDepth = 0.0f,
+				.maxDepth = 1.0f
+			};
+
+			VkRect2D scissor = {
+				.extent = extent
+			};
+
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		}
+
 		static void CopyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDeviceSize srcOffset = 0, VkDeviceSize dstOffset = 0)
 		{
 			CO_PROFILE_FN();
@@ -60,7 +81,7 @@ namespace Cobalt
 			CopyBufferToImage(commandBuffer, buffer.GetBuffer(), image.GetImage(), image.GetImageAspectFlags(), { image.GetWidth(), image.GetHeight(), 1 }, bufferOffset, imageOffset);
 		}
 
-		static void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkImageAspectFlags imageAspect, uint32_t mipLevels, VkImageLayout oldImageLayout, VkImageLayout newImageLayout)
+		static void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkImageAspectFlags imageAspect, uint32_t mipLevels, uint32_t layers, VkImageLayout oldImageLayout, VkImageLayout newImageLayout)
 		{
 			CO_PROFILE_FN();
 
@@ -81,7 +102,7 @@ namespace Cobalt
 					.baseMipLevel = 0,
 					.levelCount = mipLevels,
 					.baseArrayLayer = 0,
-					.layerCount = 1
+					.layerCount = layers
 				}
 			};
 
@@ -94,7 +115,7 @@ namespace Cobalt
 
 			VkImageLayout oldImageLayout = texture.GetImageLayout();
 
-			TransitionImageLayout(commandBuffer, texture.GetImage(), texture.GetImageAspectFlags(), texture.GetMipMapLevels(), oldImageLayout, newImageLayout);
+			TransitionImageLayout(commandBuffer, texture.GetImage(), texture.GetImageAspectFlags(), texture.GetMipMapLevels(), 1, oldImageLayout, newImageLayout);
 
 			texture.SetImageLayout(newImageLayout);
 		}

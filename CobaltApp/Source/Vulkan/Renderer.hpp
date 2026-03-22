@@ -69,6 +69,9 @@ namespace Cobalt
 		GPUScene ActiveScene;
 		std::vector<GPUObject> GPUObjects;
 		std::vector<DrawCall> DrawCalls;
+
+		glm::mat4 ProjectionMatrix;
+		glm::mat4 ViewMatrix;
 	};
 
 	class RenderGraph;
@@ -90,7 +93,7 @@ namespace Cobalt
 		static const RenderContext& GetRenderContext() { return sData->mRenderContext; }
 
 	public:
-		static void BeginScene(const GPUScene& scene);
+		static void BeginScene(const GPUScene& scene, const glm::mat4& projectionMat, const glm::mat4& viewMat);
 		static void EndScene();
 
 		static void DrawMesh(const Transform& transform, const Mesh* mesh);

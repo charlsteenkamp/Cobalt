@@ -23,6 +23,8 @@ namespace Cobalt
 	public:
 		const glm::vec3& GetTranslation() const { return mTranslation; }
 		const glm::mat4& GetViewProjectionMatrix() const { return mViewProjectionMatrix; }
+		const glm::mat4& GetProjectionMatrix() const { return mProjectionMatrix; }
+		const glm::mat4& GetViewMatrix() const { return mViewMatrix; }
 
 		float GetAspectRatio() const { return mAspectRatio; }
 		float GetFOV() const { return mFOV; }

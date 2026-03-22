@@ -184,6 +184,19 @@ namespace Cobalt
 		return *mResources[handle];
 	}
 
+	RenderPass* RenderGraph::GetPass(const std::string& passName) const
+	{
+		CO_PROFILE_FN();
+
+		for (auto& pass : mPasses)
+		{
+			if (pass->GetName() == passName)
+				return pass.get();
+		}
+
+		return nullptr;
+	}
+
 	std::vector<Texture*> RenderGraph::GetPassOutputAttachments(const std::string& passName) const
 	{
 		CO_PROFILE_FN();
@@ -421,20 +434,21 @@ namespace Cobalt
 
 				VkRenderingAttachmentInfo renderingAttachmentInfo{};
 				renderingAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+				renderingAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				renderingAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 				if (resourceHandle == RGResourceHandle_BackBufferAttachment)
 				{
 					compiledPass.BackbufferAttachmentIndex = compiledPass.ColorAttachments.size();
 					renderingAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+					renderingAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+					renderingAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 				}
 				else
 				{
 					renderingAttachmentInfo.imageView = mResources[resourceHandle]->GetImageView();
 					renderingAttachmentInfo.imageLayout = GetResourceAccessInfo(accessType).ImageLayout;
 				}
-
-				renderingAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-				renderingAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 				if (mClearColorMap.contains({ sortedPassHandle, resourceHandle }))
 				{

@@ -7,8 +7,6 @@
 
 #include <vector>
 
-#define CO_ENABLE_LIGHTING_PASS_SKYBOX 0
-
 namespace Cobalt
 {
 
@@ -19,22 +17,40 @@ namespace Cobalt
 		~LightingPass();
 
 	public:
+		void SetSkybox(const Cubemap* skybox, const Mesh* skyboxMesh);
+
+	public:
 		void Setup(RenderGraphBuilder& builder) override;
 		void Execute(VkCommandBuffer commandBuffer, const RenderContext& renderContext) override;
 
 	private:
+		void ExecuteSkyboxPass(VkCommandBuffer commandBuffer, const RenderContext& renderContext);
+		void ExecuteLightingPass(VkCommandBuffer commandBuffer, const RenderContext& renderContext);
+
+	private:
+		DescriptorBufferManager& mDescriptorBufferManager;
+
 		RGResourceHandle mPositionAttachment, mBaseColorAttachment, mNormalAttachment, mOCRAttachment, mEmissiveAttachment;
 
+		Pipeline* mSkyboxPipeline = nullptr;
 		Pipeline* mLightingPipeline = nullptr;
 
+		std::vector<DescriptorHandle> mSkyboxDescriptors;
 		std::vector<DescriptorHandle> mLightingDescriptors;
 
-#if CO_ENABLE_LIGHTING_PASS_SKYBOX
-		Pipeline* mSkyboxPipeline = nullptr;
-		std::vector<DescriptorHandle> mSkyboxDescriptors;
-		std::vector<std::unique_ptr<VulkanBuffer>> mSkyboxViewProjectionBuffers;
-		std::unique_ptr<Cubemap> mSkybox;
-#endif
+		struct SkyboxUniformBuffer
+		{
+			glm::mat4 ProjectionMatrix;
+			glm::mat4 ViewMatrix;
+			VkDeviceAddress Vertices;
+
+			float __padding[2];
+		};
+
+		std::vector<std::unique_ptr<VulkanBuffer>> mSkyboxUniformBuffers;
+		std::unique_ptr<VulkanBuffer> mSkyboxCube;
+		const Cubemap* mSkybox = nullptr;
+		const Mesh* mSkyboxMesh = nullptr;
 	};
 
 }

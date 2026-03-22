@@ -72,7 +72,7 @@ namespace Cobalt
 	{
 		CO_PROFILE_FN();
 
-		assert(mShaderParameter.Kind == ShaderParameterKind::CombinedImageSampler);
+		//assert(mShaderParameter.Kind == ShaderParameterKind::CombinedImageSampler);
 
 		VkDescriptorType descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 

@@ -42,6 +42,7 @@ namespace Cobalt
 
 	public:
 		Texture& GetResource(RGResourceHandle handle) const;
+		RenderPass* GetPass(const std::string& passName) const;
 
 		std::vector<Texture*> GetPassOutputAttachments(const std::string& passName) const;
 

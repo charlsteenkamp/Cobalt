@@ -3,6 +3,8 @@
 #include "Application.hpp"
 #include "AssetManager.hpp"
 #include "Vulkan/MaterialSystem.hpp"
+#include "Vulkan/Texture.hpp"
+#include "Vulkan/LightingPass.hpp"
 
 #include <imgui.h>
 
@@ -69,6 +71,19 @@ namespace Cobalt
 				mSphereMaterials[y][x] = materialSystem.BuildMaterial(materialName, sphereMaterialInfo);
 			}
 		}
+
+		CubemapInfo cubemapInfo;
+		cubemapInfo.FacePaths.BackFace = "CobaltApp/Assets/Textures/Skybox/back.jpg";
+		cubemapInfo.FacePaths.DownFace = "CobaltApp/Assets/Textures/Skybox/bottom.jpg";
+		cubemapInfo.FacePaths.FrontFace = "CobaltApp/Assets/Textures/Skybox/front.jpg";
+		cubemapInfo.FacePaths.LeftFace = "CobaltApp/Assets/Textures/Skybox/left.jpg";
+		cubemapInfo.FacePaths.RightFace = "CobaltApp/Assets/Textures/Skybox/right.jpg";
+		cubemapInfo.FacePaths.UpFace = "CobaltApp/Assets/Textures/Skybox/top.jpg";
+
+		Cubemap* skybox = AssetManager::GetCubemap(AssetManager::RegisterCubemap("Skybox", cubemapInfo));
+
+		LightingPass* lightingPass = static_cast<LightingPass*>(Renderer::GetRenderGraph().GetPass("Lighting Pass"));
+		lightingPass->SetSkybox(skybox, mCubeMesh);
 	}
 
 	void SandboxModule::OnShutdown()
@@ -127,7 +142,8 @@ namespace Cobalt
 		Transform cubeTransform;
 		cubeTransform.Scale = { 20.0f, 0.2f, 20.0f };
 
-		Renderer::BeginScene(mScene);
+
+		Renderer::BeginScene(mScene, mCameraController.GetProjectionMatrix(), mCameraController.GetViewMatrix());
 		Renderer::DrawMesh(cubeTransform, mCubeMesh);
 
 		float left = -10.0f;

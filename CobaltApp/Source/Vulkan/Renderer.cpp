@@ -76,7 +76,7 @@ namespace Cobalt
 		//sData->mRenderGraph->OnResize();
 	}
 
-	void Renderer::BeginScene(const GPUScene& scene)
+	void Renderer::BeginScene(const GPUScene& scene, const glm::mat4& projectionMat, const glm::mat4& viewMat)
 	{
 		CO_PROFILE_FN();
 
@@ -90,6 +90,9 @@ namespace Cobalt
 
 		sData->mRenderContext.GPUObjects.clear();
 		sData->mRenderContext.DrawCalls.clear();
+
+		sData->mRenderContext.ProjectionMatrix = projectionMat;
+		sData->mRenderContext.ViewMatrix = viewMat;
 	}
 
 	void Renderer::EndScene()
